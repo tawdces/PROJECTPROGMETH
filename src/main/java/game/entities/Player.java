@@ -4,6 +4,8 @@ import game.config.GameSettings;
 import game.core.GameEntity;
 import game.core.PlatformSurface;
 import game.core.SpriteFrame;
+import game.entities.weapons.Gun;
+import game.entities.weapons.GunRegistry;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
@@ -11,15 +13,17 @@ import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.Objects;
 
-public class Player extends GameEntity {
+public abstract class Player extends GameEntity {
+
+    private static final int MAX_JUMPS = 2;
 
     private final String name;
     private final Color color;
-    private final int facingDirection;
+    private int facingDirection;
     private final Image spriteSheet;
     private final List<SpriteFrame> spriteFrames;
 
@@ -31,37 +35,47 @@ public class Player extends GameEntity {
     private boolean onGround;
     private long dropThroughUntilMillis;
     private long gunExpiresAtMillis;
-    private WeaponType equippedWeapon = WeaponType.NONE;
+    private Gun equippedGun = GunRegistry.UNARMED;
     private long nextActionAtMillis;
+    private int jumpsUsed;
 
-    public Player(double startX, double startY, String name, Color color, int facingDirection) {
+    protected Player(
+            double startX,
+            double startY,
+            String name,
+            Color color,
+            int initialFacingDirection,
+            String spriteResourcePath,
+            List<SpriteFrame> spriteFrames
+    ) {
         super(startX, startY, GameSettings.PLAYER_WIDTH, GameSettings.PLAYER_HEIGHT);
         this.name = name;
         this.color = color;
-        this.facingDirection = facingDirection;
-        this.spriteSheet = null;
-        this.spriteFrames = List.of();
-    }
-
-    public Player(double startX, double startY, String name, Color color, int facingDirection, String spriteResourcePath, List<SpriteFrame> spriteFrames) {
-        super(startX, startY, GameSettings.PLAYER_WIDTH, GameSettings.PLAYER_HEIGHT);
-        this.name = name;
-        this.color = color;
-        this.facingDirection = facingDirection;
-
-        Image raw = new Image(Objects.requireNonNull(Player.class.getResourceAsStream(spriteResourcePath)));
-        this.spriteSheet = makeBackgroundTransparent(raw);
+        this.facingDirection = initialFacingDirection;
         this.spriteFrames = spriteFrames;
+
+        if (spriteResourcePath == null) {
+            this.spriteSheet = null;
+        } else {
+            Image raw = new Image(Objects.requireNonNull(Player.class.getResourceAsStream(spriteResourcePath)));
+            this.spriteSheet = makeBackgroundTransparent(raw);
+        }
     }
 
     public void setHorizontalInput(double horizontalInput) {
         this.horizontalInput = horizontalInput;
+        if (horizontalInput > 0.01) {
+            facingDirection = 1;
+        } else if (horizontalInput < -0.01) {
+            facingDirection = -1;
+        }
     }
 
     public void jump() {
-        if (onGround) {
+        if (onGround || jumpsUsed < MAX_JUMPS) {
             velocityY = GameSettings.JUMP_VELOCITY;
             onGround = false;
+            jumpsUsed++;
         }
     }
 
@@ -79,51 +93,55 @@ public class Player extends GameEntity {
 
     @Override
     public void render(GraphicsContext gc) {
+        double drawX = x;
+        double drawY = y;
+        double drawWidth = width;
+        double drawHeight = height;
+
         if (spriteSheet != null) {
             SpriteFrame frame = selectFrame();
             gc.save();
             if (facingDirection < 0) {
-                gc.translate(x + width, y);
+                gc.translate(drawX + drawWidth, drawY);
                 gc.scale(-1, 1);
-                gc.drawImage(spriteSheet, frame.x(), frame.y(), frame.width(), frame.height(), 0, 0, width, height);
+                gc.drawImage(spriteSheet, frame.x(), frame.y(), frame.width(), frame.height(), 0, 0, drawWidth, drawHeight);
             } else {
-                gc.drawImage(spriteSheet, frame.x(), frame.y(), frame.width(), frame.height(), x, y, width, height);
+                gc.drawImage(spriteSheet, frame.x(), frame.y(), frame.width(), frame.height(), drawX, drawY, drawWidth, drawHeight);
             }
             gc.restore();
         } else {
             gc.setFill(color);
-            gc.fillRoundRect(x, y, width, height, 10, 10);
+            gc.fillRoundRect(drawX, drawY, drawWidth, drawHeight, 10, 10);
         }
 
         if (hasGun(System.currentTimeMillis())) {
-            gc.setFill(Color.BLACK);
-            double gunWidth = equippedWeapon == WeaponType.SHOTGUN ? 22 : (equippedWeapon == WeaponType.MACHINE_GUN ? 20 : 16);
-            if (facingDirection > 0) {
-                gc.fillRect(x + width - 2, y + height / 2.0 - 3, gunWidth, 6);
+            Image gunSprite = equippedGun.sprite();
+            double gunWidth = equippedGun.renderWidth();
+            double gunHeight = gunWidth * 0.5;
+            double gunX = facingDirection > 0 ? drawX + drawWidth - 1 : drawX - (gunWidth - 1);
+            double gunY = drawY + drawHeight / 2.0 - gunHeight / 2.0;
+
+            gc.save();
+            if (facingDirection < 0) {
+                gc.translate(gunX + gunWidth, gunY);
+                gc.scale(-1, 1);
+                gc.drawImage(gunSprite, 0, 0, gunWidth, gunHeight);
             } else {
-                gc.fillRect(x - (gunWidth - 2), y + height / 2.0 - 3, gunWidth, 6);
+                gc.drawImage(gunSprite, gunX, gunY, gunWidth, gunHeight);
             }
+            gc.restore();
         }
 
         gc.setFill(Color.WHITE);
-        gc.fillText(name, x + 6, y - 6);
+        gc.fillText(name, drawX + 6, drawY - 6);
     }
 
     private SpriteFrame selectFrame() {
+        if (spriteSheet == null) {
+            return new SpriteFrame(0, 0, width, height);
+        }
         if (spriteFrames.isEmpty()) {
             return new SpriteFrame(0, 0, spriteSheet.getWidth(), spriteSheet.getHeight());
-        }
-
-        if (spriteFrames.size() == 1) {
-            return spriteFrames.get(0);
-        }
-
-        if (!onGround) {
-            return spriteFrames.get(Math.min(2, spriteFrames.size() - 1));
-        }
-        if (Math.abs(horizontalInput) > 0.01) {
-            int frameIndex = (int) ((System.currentTimeMillis() / 95) % spriteFrames.size());
-            return spriteFrames.get(frameIndex);
         }
         return spriteFrames.get(0);
     }
@@ -190,6 +208,7 @@ public class Player extends GameEntity {
                 y = surface.getMinY() - height;
                 velocityY = 0.0;
                 onGround = true;
+                jumpsUsed = 0;
             } else if (!surfaceData.isOneWay() && previousY >= surface.getMaxY()) {
                 y = surface.getMaxY();
                 if (velocityY < 0) {
@@ -226,42 +245,14 @@ public class Player extends GameEntity {
     }
 
     public List<Bullet> shoot() {
-        WeaponType weapon = getEquippedWeapon(System.currentTimeMillis());
-        if (weapon == WeaponType.NONE) {
+        Gun gun = getEquippedGun(System.currentTimeMillis());
+        if (gun == GunRegistry.UNARMED) {
             return List.of();
         }
 
         double bulletX = facingDirection > 0 ? x + width + 2 : x - GameSettings.BULLET_SIZE - 2;
         double bulletY = y + (height / 2.0) - (GameSettings.BULLET_SIZE / 2.0);
-        double speedX = facingDirection * weapon.bulletSpeed();
-        double forceX = facingDirection * weapon.forceX();
-
-        if (weapon == WeaponType.SHOTGUN) {
-            double[] verticalSpeeds = {-120.0, -60.0, 0.0, 60.0, 120.0};
-            List<Bullet> shotgunBullets = new ArrayList<>();
-            for (double verticalSpeed : verticalSpeeds) {
-                shotgunBullets.add(new Bullet(
-                        bulletX,
-                        bulletY,
-                        speedX,
-                        verticalSpeed,
-                        forceX,
-                        weapon.forceY(),
-                        this
-                ));
-            }
-            return shotgunBullets;
-        }
-
-        return List.of(new Bullet(
-                bulletX,
-                bulletY,
-                speedX,
-                0,
-                forceX,
-                weapon.forceY(),
-                this
-        ));
+        return gun.fire(this, bulletX, bulletY, facingDirection);
     }
 
     public int getFacingDirection() {
@@ -269,34 +260,36 @@ public class Player extends GameEntity {
     }
 
     public boolean hasGun(long nowMillis) {
-        return getEquippedWeapon(nowMillis) != WeaponType.NONE;
+        return getEquippedGun(nowMillis) != GunRegistry.UNARMED;
     }
 
-    public WeaponType getEquippedWeapon(long nowMillis) {
+    public Gun getEquippedGun(long nowMillis) {
         if (nowMillis >= gunExpiresAtMillis) {
-            equippedWeapon = WeaponType.NONE;
+            equippedGun = GunRegistry.UNARMED;
         }
-        return equippedWeapon;
+        return equippedGun;
     }
 
-    public void equipGun(WeaponType weaponType, long nowMillis) {
-        equippedWeapon = weaponType;
-        gunExpiresAtMillis = nowMillis + weaponType.durationMillis();
+    public void equipGun(Gun gun, long nowMillis) {
+        equippedGun = gun;
+        if (gun == GunRegistry.UNARMED) {
+            gunExpiresAtMillis = 0L;
+            return;
+        }
+        gunExpiresAtMillis = nowMillis + gun.durationMillis();
     }
 
-    public long getGunRemainingMillis(long nowMillis) {
-        if (getEquippedWeapon(nowMillis) == WeaponType.NONE) {
-            return 0;
-        }
-        return Math.max(0, gunExpiresAtMillis - nowMillis);
+    public void equipPermanentGun(Gun gun) {
+        equippedGun = gun;
+        gunExpiresAtMillis = gun == GunRegistry.UNARMED ? 0L : Long.MAX_VALUE;
     }
 
     public long getShootCooldownMillis(long nowMillis) {
-        WeaponType weapon = getEquippedWeapon(nowMillis);
-        if (weapon == WeaponType.NONE) {
+        Gun gun = getEquippedGun(nowMillis);
+        if (gun == GunRegistry.UNARMED) {
             return GameSettings.SHOOT_COOLDOWN_MS;
         }
-        return weapon.cooldownMillis();
+        return gun.cooldownMillis();
     }
 
     public boolean canAction(long nowMillis) {
@@ -305,5 +298,18 @@ public class Player extends GameEntity {
 
     public void setActionCooldown(long nowMillis, long cooldownMillis) {
         nextActionAtMillis = nowMillis + cooldownMillis;
+    }
+
+    public void respawnFromSky(double spawnX, double spawnY) {
+        x = spawnX;
+        y = spawnY;
+        previousX = spawnX;
+        previousY = spawnY;
+        horizontalInput = 0.0;
+        knockbackVX = 0.0;
+        velocityY = 0.0;
+        onGround = false;
+        dropThroughUntilMillis = 0L;
+        jumpsUsed = 0;
     }
 }

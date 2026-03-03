@@ -1,18 +1,16 @@
 package game.ui;
 
 import game.config.GameSettings;
-import game.core.MatchTimerService;
 import game.core.PlatformSurface;
 import game.core.Renderable;
 import game.core.Updatable;
 import game.entities.Bullet;
-import game.entities.Enemy;
 import game.entities.Player;
-import game.entities.WeaponBox;
-import game.entities.WeaponType;
+import game.entities.PlayerOne;
+import game.entities.PlayerTwo;
+import game.entities.weapons.Gun;
 import javafx.animation.AnimationTimer;
 import javafx.geometry.Pos;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -22,6 +20,7 @@ import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Insets;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -33,8 +32,12 @@ import java.util.Random;
 import java.util.Set;
 
 public class GamePanel extends StackPane {
+    private static final int INITIAL_LIVES = 3;
+    private static final double SKY_RESPAWN_Y_MIN = 24.0;
+    private static final double SKY_RESPAWN_Y_MAX = 160.0;
+    private static final double SIDE_RESPAWN_MARGIN = 48.0;
 
-    private final Runnable onRestart;
+    private final Runnable onRematch;
     private final Runnable onBackToMenu;
 
     private final Canvas canvas = new Canvas(GameSettings.WIDTH, GameSettings.HEIGHT);
@@ -44,24 +47,10 @@ public class GamePanel extends StackPane {
     private static final double MAP_SOURCE_WIDTH = 598.0;
     private static final double MAP_SOURCE_HEIGHT = 348.0;
 
-    private final Player p1 = new Player(
-            sx(100),
-            sy(214) - GameSettings.PLAYER_HEIGHT,
-            "P1",
-            Color.DODGERBLUE,
-            1,
-            "/Player.png",
-            List.of()
-    );
-    private final Enemy p2 = new Enemy(
-            sx(500),
-            sy(214) - GameSettings.PLAYER_HEIGHT,
-            "/Player.png",
-            List.of()
-    );
+    private final PlayerOne p1;
+    private final PlayerTwo p2;
 
     private final List<Bullet> bullets = new ArrayList<>();
-    private final List<WeaponBox> weaponBoxes = new ArrayList<>();
     private final List<PlatformSurface> worldSurfaces = List.of(
             new PlatformSurface(sx(106), sy(146), sw(148), sh(12), true),
             new PlatformSurface(sx(309), sy(146), sw(145), sh(12), true),
@@ -72,20 +61,14 @@ public class GamePanel extends StackPane {
     );
     private final Set<KeyCode> pressedKeys = new HashSet<>();
     private final Random random = new Random();
-    private final MatchTimerService matchTimer = new MatchTimerService();
-    private final List<WeaponType> pickupWeapons = List.of(
-            WeaponType.PISTOL,
-            WeaponType.RIFLE,
-            WeaponType.MACHINE_GUN,
-            WeaponType.SHOTGUN
-    );
+    private final Button pauseButton = new Button("Pause");
+    private VBox pauseModal;
 
-    private final long gameStartMillis = System.currentTimeMillis();
-    private long lastDropMillis = gameStartMillis;
-    private boolean firstDropDone;
     private boolean gameOver;
-
+    private boolean paused;
     private long lastFrameNanos;
+    private int p1Lives = INITIAL_LIVES;
+    private int p2Lives = INITIAL_LIVES;
 
     private final AnimationTimer gameLoop = new AnimationTimer() {
         @Override
@@ -102,20 +85,34 @@ public class GamePanel extends StackPane {
         }
     };
 
-    public GamePanel(Runnable onRestart, Runnable onBackToMenu) {
-        this.onRestart = onRestart;
+    public GamePanel(Gun p1Weapon, Gun p2Weapon, Runnable onRematch, Runnable onBackToMenu) {
+        this.onRematch = onRematch;
         this.onBackToMenu = onBackToMenu;
+
+        p1 = new PlayerOne(sx(100), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player.png", List.of());
+        p2 = new PlayerTwo(sx(500), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player.png", List.of());
+        p1.equipPermanentGun(p1Weapon);
+        p2.equipPermanentGun(p2Weapon);
 
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         getChildren().add(canvas);
+        setupPauseUi();
 
-        matchTimer.start();
         gameLoop.start();
     }
 
     public void bindInput(Scene scene) {
         scene.setOnKeyPressed(event -> {
             pressedKeys.add(event.getCode());
+
+            if (event.getCode() == KeyCode.ESCAPE) {
+                togglePause();
+                return;
+            }
+
+            if (paused) {
+                return;
+            }
 
             if (gameOver) {
                 return;
@@ -130,11 +127,13 @@ public class GamePanel extends StackPane {
             } else if (event.getCode() == KeyCode.UP) {
                 p2.jump();
             } else if (event.getCode() == KeyCode.S) {
-                tryPickup(p1);
-                p1.requestDropThrough(System.currentTimeMillis());
+                if (canDropToLowerPlatform(p1)) {
+                    p1.requestDropThrough(System.currentTimeMillis());
+                }
             } else if (event.getCode() == KeyCode.DOWN) {
-                tryPickup(p2);
-                p2.requestDropThrough(System.currentTimeMillis());
+                if (canDropToLowerPlatform(p2)) {
+                    p2.requestDropThrough(System.currentTimeMillis());
+                }
             }
         });
 
@@ -142,13 +141,16 @@ public class GamePanel extends StackPane {
     }
 
     private void updateGame(double deltaSeconds) {
+        if (paused) {
+            return;
+        }
+
         updateMovement();
 
         List<Updatable> updatables = new ArrayList<>();
         updatables.add(p1);
         updatables.add(p2);
         updatables.addAll(bullets);
-        updatables.addAll(weaponBoxes);
         for (Updatable updatable : updatables) {
             updatable.update(deltaSeconds);
         }
@@ -161,10 +163,7 @@ public class GamePanel extends StackPane {
 
         handleBulletHits();
         bullets.removeIf(bullet -> !bullet.isActive());
-        weaponBoxes.removeIf(box -> !box.isActive());
-
-        spawnWeaponBoxesByTime();
-        checkLoseConditions();
+        handleFallDeaths();
     }
 
     private void updateMovement() {
@@ -215,83 +214,66 @@ public class GamePanel extends StackPane {
         }
     }
 
-    private void spawnWeaponBoxesByTime() {
-        long now = System.currentTimeMillis();
+    private boolean canDropToLowerPlatform(Player player) {
+        if (!player.isOnGround()) {
+            return false;
+        }
 
-        if (!firstDropDone && now - gameStartMillis >= GameSettings.FIRST_DROP_DELAY_MS) {
-            spawnWeaponPair();
-            firstDropDone = true;
-            lastDropMillis = now;
+        var playerBounds = player.getBounds();
+        double playerBottom = playerBounds.getMaxY();
+        double nearestPlatformBelowTop = Double.POSITIVE_INFINITY;
+
+        for (PlatformSurface surface : worldSurfaces) {
+            var bounds = surface.getBounds();
+            boolean horizontalOverlap = bounds.getMaxX() > playerBounds.getMinX() + 2
+                    && bounds.getMinX() < playerBounds.getMaxX() - 2;
+            if (!horizontalOverlap) {
+                continue;
+            }
+            if (bounds.getMinY() <= playerBottom + 6) {
+                continue;
+            }
+
+            nearestPlatformBelowTop = Math.min(nearestPlatformBelowTop, bounds.getMinY());
+        }
+
+        if (nearestPlatformBelowTop == Double.POSITIVE_INFINITY) {
+            return false;
+        }
+
+        return nearestPlatformBelowTop + GameSettings.PLAYER_HEIGHT <= GameSettings.WORLD_FLOOR_Y;
+    }
+
+    private void handleFallDeaths() {
+        if (gameOver) {
             return;
         }
 
-        if (firstDropDone && now - lastDropMillis >= GameSettings.NEXT_DROP_INTERVAL_MS) {
-            spawnWeaponPair();
-            lastDropMillis = now;
-        }
-    }
-
-    private void spawnWeaponPair() {
-        double x1 = randomBoxX();
-        double x2 = randomBoxX();
-        while (Math.abs(x1 - x2) < GameSettings.BOX_SIZE * 2.4) {
-            x2 = randomBoxX();
-        }
-
-        weaponBoxes.add(new WeaponBox(x1, findLandingY(x1), randomWeaponType()));
-        weaponBoxes.add(new WeaponBox(x2, findLandingY(x2), randomWeaponType()));
-    }
-
-    private WeaponType randomWeaponType() {
-        return pickupWeapons.get(random.nextInt(pickupWeapons.size()));
-    }
-
-    private double randomBoxX() {
-        PlatformSurface surface = worldSurfaces.get(random.nextInt(worldSurfaces.size()));
-        Rectangle2D b = surface.getBounds();
-        double minX = b.getMinX() + 20;
-        double maxX = b.getMaxX() - GameSettings.BOX_SIZE - 20;
-        if (maxX <= minX) {
-            return b.getMinX() + 4;
-        }
-        return minX + random.nextDouble() * (maxX - minX);
-    }
-
-    private double findLandingY(double x) {
-        double boxCenterX = x + (GameSettings.BOX_SIZE / 2.0);
-        double landingTop = GameSettings.WORLD_FLOOR_Y;
-        for (PlatformSurface surface : worldSurfaces) {
-            Rectangle2D b = surface.getBounds();
-            if (boxCenterX >= b.getMinX() && boxCenterX <= b.getMaxX()) {
-                landingTop = Math.min(landingTop, b.getMinY());
-            }
-        }
-        return landingTop - GameSettings.BOX_SIZE;
-    }
-
-    private void tryPickup(Player player) {
-        long now = System.currentTimeMillis();
-        for (WeaponBox box : weaponBoxes) {
-            if (box.isActive() && box.getBounds().intersects(player.getBounds())) {
-                box.deactivate();
-                player.equipGun(box.getWeaponType(), now);
+        if (isOutOfMap(p1)) {
+            p1Lives--;
+            if (p1Lives <= 0) {
+                finishGame("Player 2");
                 return;
             }
+            respawnPlayerFromSky(p1);
         }
-    }
 
-    private void checkLoseConditions() {
-        if (isOutOfMap(p1)) {
-            finishGame("Player 2");
+        if (gameOver) {
             return;
         }
+
         if (isOutOfMap(p2)) {
-            finishGame("Player 1");
+            p2Lives--;
+            if (p2Lives <= 0) {
+                finishGame("Player 1");
+                return;
+            }
+            respawnPlayerFromSky(p2);
         }
     }
 
     private boolean isOutOfMap(Player player) {
-        Rectangle2D b = player.getBounds();
+        var b = player.getBounds();
         return b.getMinY() > GameSettings.WORLD_FLOOR_Y;
     }
 
@@ -299,12 +281,12 @@ public class GamePanel extends StackPane {
         gc.setFill(Color.web("#d9ecff"));
         gc.fillRect(0, 0, GameSettings.WIDTH, GameSettings.HEIGHT);
         gc.drawImage(mapImage, 0, 0, GameSettings.WIDTH, GameSettings.HEIGHT);
+        renderPlatformGuides();
 
         gc.setStroke(Color.web("#2f3541"));
         gc.strokeRect(1, 1, GameSettings.WIDTH - 2, GameSettings.HEIGHT - 2);
 
         List<Renderable> renderables = new ArrayList<>();
-        renderables.addAll(weaponBoxes);
         renderables.add(p1);
         renderables.add(p2);
         renderables.addAll(bullets);
@@ -315,22 +297,23 @@ public class GamePanel extends StackPane {
         renderHud();
     }
 
+    private void renderPlatformGuides() {
+        gc.setFill(Color.web("#2f7cff", 0.55));
+        gc.setStroke(Color.web("#0f3fa1", 0.9));
+        gc.setLineWidth(2.0);
+        for (PlatformSurface surface : worldSurfaces) {
+            var b = surface.getBounds();
+            gc.fillRoundRect(b.getMinX(), b.getMinY(), b.getWidth(), b.getHeight(), 8, 8);
+            gc.strokeRoundRect(b.getMinX(), b.getMinY(), b.getWidth(), b.getHeight(), 8, 8);
+        }
+    }
+
     private void renderHud() {
         long now = System.currentTimeMillis();
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font("Consolas", FontWeight.BOLD, 16));
-        gc.fillText("P1 Gun: " + formatGunStatus(p1, now), 20, 26);
-        gc.fillText("Time: " + String.format("%.1fs", matchTimer.getElapsedSeconds()), GameSettings.WIDTH / 2.0 - 52, 26);
-        gc.fillText("P2 Gun: " + formatGunStatus(p2, now), GameSettings.WIDTH - 260, 26);
-    }
-
-    private String formatGunStatus(Player player, long now) {
-        WeaponType weapon = player.getEquippedWeapon(now);
-        long remain = player.getGunRemainingMillis(now);
-        if (weapon == WeaponType.NONE || remain <= 0) {
-            return "OFF";
-        }
-        return weapon.label() + " " + String.format("%.1fs", remain / 1000.0);
+        gc.fillText("P1 HP: " + p1Lives + "  Gun: " + p1.getEquippedGun(now).label(), 20, 26);
+        gc.fillText("P2 HP: " + p2Lives + "  Gun: " + p2.getEquippedGun(now).label(), GameSettings.WIDTH - 290, 26);
     }
 
     private void finishGame(String winner) {
@@ -338,8 +321,12 @@ public class GamePanel extends StackPane {
             return;
         }
         gameOver = true;
+        paused = false;
         gameLoop.stop();
-        matchTimer.stop();
+        pauseButton.setVisible(false);
+        if (pauseModal != null) {
+            pauseModal.setVisible(false);
+        }
 
         Label title = new Label(winner + " Wins!");
         title.setTextFill(Color.WHITE);
@@ -347,15 +334,12 @@ public class GamePanel extends StackPane {
 
         Button restart = new Button("Restart");
         restart.setPrefWidth(180);
-        restart.setOnAction(event -> {
-            matchTimer.stop();
-            onRestart.run();
-        });
+        restart.setOnAction(event -> onRematch.run());
 
-        Button backToMenu = new Button("Back to Menu");
+        Button backToMenu = new Button("Return to Menu");
         backToMenu.setPrefWidth(180);
         backToMenu.setOnAction(event -> {
-            matchTimer.stop();
+            shutdownGameSystems();
             onBackToMenu.run();
         });
 
@@ -381,5 +365,72 @@ public class GamePanel extends StackPane {
 
     private static double sh(double mapHeight) {
         return (mapHeight / MAP_SOURCE_HEIGHT) * GameSettings.HEIGHT;
+    }
+
+    private void respawnPlayerFromSky(Player player) {
+        double minX = SIDE_RESPAWN_MARGIN;
+        double maxX = GameSettings.WIDTH - GameSettings.PLAYER_WIDTH - SIDE_RESPAWN_MARGIN;
+        double spawnX = minX + random.nextDouble() * (maxX - minX);
+        double spawnY = -(SKY_RESPAWN_Y_MIN + random.nextDouble() * (SKY_RESPAWN_Y_MAX - SKY_RESPAWN_Y_MIN));
+        player.respawnFromSky(spawnX, spawnY);
+    }
+
+    private void setupPauseUi() {
+        pauseButton.setFocusTraversable(false);
+        pauseButton.setOnAction(event -> togglePause());
+        StackPane.setAlignment(pauseButton, Pos.TOP_RIGHT);
+        StackPane.setMargin(pauseButton, new Insets(10, 10, 0, 0));
+
+        Label title = new Label("Paused");
+        title.setTextFill(Color.WHITE);
+        title.setFont(Font.font("Verdana", FontWeight.BOLD, 30));
+
+        Button cont = new Button("Continue");
+        cont.setPrefWidth(220);
+        cont.setOnAction(event -> setPaused(false));
+
+        Button restart = new Button("Restart");
+        restart.setPrefWidth(220);
+        restart.setOnAction(event -> {
+            shutdownGameSystems();
+            onRematch.run();
+        });
+
+        Button menu = new Button("Return to Menu");
+        menu.setPrefWidth(220);
+        menu.setOnAction(event -> {
+            shutdownGameSystems();
+            onBackToMenu.run();
+        });
+
+        pauseModal = new VBox(14, title, cont, restart, menu);
+        pauseModal.setAlignment(Pos.CENTER);
+        pauseModal.setVisible(false);
+        pauseModal.setMaxWidth(360);
+        pauseModal.setMaxHeight(260);
+        pauseModal.setStyle("-fx-background-color: rgba(0,0,0,0.82); -fx-padding: 24; -fx-background-radius: 10;");
+
+        getChildren().addAll(pauseModal, pauseButton);
+    }
+
+    private void togglePause() {
+        if (gameOver) {
+            return;
+        }
+        setPaused(!paused);
+    }
+
+    private void setPaused(boolean pauseValue) {
+        paused = pauseValue;
+        if (paused) {
+            pressedKeys.clear();
+        }
+        if (pauseModal != null) {
+            pauseModal.setVisible(paused);
+        }
+    }
+
+    private void shutdownGameSystems() {
+        gameLoop.stop();
     }
 }

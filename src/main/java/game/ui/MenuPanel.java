@@ -17,9 +17,9 @@ public class MenuPanel extends VBox {
         setSpacing(18);
         setStyle("-fx-background-color: linear-gradient(to bottom, #10151f, #0f2633);");
 
-        Label title = new Label("PvP Knockback Game");
+        Label title = new Label("Gun Mayhem Style");
         title.setTextFill(Color.WHITESMOKE);
-        title.setFont(Font.font("Verdana", FontWeight.BOLD, 42));
+        title.setFont(Font.font("Verdana", FontWeight.BOLD, 36));
 
         Button start = new Button("START");
         start.setPrefWidth(220);

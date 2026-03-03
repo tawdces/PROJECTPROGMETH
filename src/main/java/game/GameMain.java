@@ -1,9 +1,12 @@
 package game;
 
 import game.config.GameSettings;
+import game.entities.weapons.Gun;
 import game.ui.GamePanel;
 import game.ui.MenuPanel;
+import game.ui.WeaponSelectPanel;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
@@ -21,13 +24,25 @@ public class GameMain extends Application {
     }
 
     public void showMenu() {
-        MenuPanel menu = new MenuPanel(this::startGame, stage::close);
+        MenuPanel menu = new MenuPanel(this::showWeaponSelect, stage::close);
         Scene scene = new Scene(menu, GameSettings.WIDTH, GameSettings.HEIGHT);
         stage.setScene(scene);
     }
 
-    public void startGame() {
-        GamePanel gamePanel = new GamePanel(this::startGame, this::showMenu);
+    public void showWeaponSelect() {
+        WeaponSelectPanel weaponSelect = new WeaponSelectPanel(this::startGame, this::showMenu);
+        Scene scene = new Scene(weaponSelect, GameSettings.WIDTH, GameSettings.HEIGHT);
+        stage.setScene(scene);
+        Platform.runLater(weaponSelect::requestFocus);
+    }
+
+    public void startGame(Gun p1Weapon, Gun p2Weapon) {
+        GamePanel gamePanel = new GamePanel(
+                p1Weapon,
+                p2Weapon,
+                this::showWeaponSelect,
+                this::showMenu
+        );
         Scene gameScene = new Scene(gamePanel, GameSettings.WIDTH, GameSettings.HEIGHT);
         stage.setScene(gameScene);
         gamePanel.bindInput(gameScene);
