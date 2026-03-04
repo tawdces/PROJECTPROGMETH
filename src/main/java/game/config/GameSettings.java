@@ -46,7 +46,7 @@ public final class GameSettings {
     public static final double EXPLOSION_FORCE_BASE = 1400.0;
     public static final double EXPLOSION_VERTICAL_FORCE = -450.0;
 
-    public static final long BARREL_DROP_INTERVAL_MS = 16_000;
+    public static final long TRAP_DROP_INTERVAL_MS = 8_000;
     
     private GameSettings() {
     }

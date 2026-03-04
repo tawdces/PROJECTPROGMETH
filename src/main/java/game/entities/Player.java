@@ -46,7 +46,7 @@ public abstract class Player extends GameEntity {
     private long invulnerableUntilMillis;
 
     private double stepDistance;
-    private static final double STEP_INTERVAL = 60.0; // ระยะทางที่เดินก่อนจะเล่นเสียงก้าวถัดไป
+    private static final double STEP_INTERVAL = 60.0; 
 
     protected Player(
             double startX,
@@ -100,7 +100,7 @@ public abstract class Player extends GameEntity {
 
         knockbackVX *= Math.pow(GameSettings.KNOCKBACK_DAMPING, deltaSeconds * 60.0);
 
-        // จัดการเสียงเดินเมื่อตัวละครอยู่บนพื้นและมีการขยับ
+        
         if (onGround && Math.abs(horizontalInput) > 0.01) {
             stepDistance += Math.abs(moveX);
             if (stepDistance > STEP_INTERVAL) {
@@ -108,7 +108,7 @@ public abstract class Player extends GameEntity {
                 stepDistance = 0.0;
             }
         } else if (!onGround) {
-            stepDistance = STEP_INTERVAL; // พร้อมเล่นเสียงก้าวแรกทันทีที่ลงพื้นและเดินต่อ
+            stepDistance = STEP_INTERVAL; 
         }
     }
 

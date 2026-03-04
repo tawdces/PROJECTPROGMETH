@@ -9,6 +9,9 @@ import game.entities.Bullet;
 import game.entities.Player;
 import game.entities.PlayerOne;
 import game.entities.PlayerTwo;
+import game.entities.traps.ExplosiveBarrel;
+import game.entities.traps.Landmine;
+import game.entities.traps.Trap;
 import game.entities.weapons.Gun;
 import game.entities.weapons.GunRegistry;
 import javafx.animation.AnimationTimer;
@@ -61,9 +64,6 @@ public class GamePanel extends StackPane {
     private final Image selectedMapImage;
     private final Image bulletHitImage = loadTransparentImage("/Bullet_hit.png");
     private final Image bloodImage = loadTransparentImage("/Blood.png");
-    
-    
-    private final Image barrelImage = loadTransparentImage("/barrel.png");
     private final Image explosionImage = loadTransparentImage("/explosion.png");
 
     private static final double MAP_SOURCE_WIDTH = 598.0;
@@ -74,7 +74,7 @@ public class GamePanel extends StackPane {
 
     private final List<Bullet> bullets = new ArrayList<>();
     private final List<WeaponDrop> weaponDrops = new ArrayList<>();
-    private final List<ExplosiveBarrel> barrels = new ArrayList<>(); 
+    private final List<Trap> traps = new ArrayList<>(); 
     private final List<HitEffect> hitEffects = new ArrayList<>();
     private final List<PlatformSurface> worldSurfaces;
     private final Set<KeyCode> pressedKeys = new HashSet<>();
@@ -94,7 +94,7 @@ public class GamePanel extends StackPane {
     private double cameraY;
     private double cameraZoom = CAMERA_MIN_ZOOM;
     private long nextGunDropAtMillis = System.currentTimeMillis() + GameSettings.FIRST_DROP_DELAY_MS;
-    private long nextBarrelDropAtMillis;
+    private long nextTrapDropAtMillis;
     private long freezeUntilMillis;
     private long pendingNextRoundAtMillis;
     private String centerBannerText = "";
@@ -202,6 +202,7 @@ public class GamePanel extends StackPane {
         updatables.add(p1);
         updatables.add(p2);
         updatables.addAll(bullets);
+        updatables.addAll(traps); 
         for (Updatable updatable : updatables) {
             updatable.update(deltaSeconds);
         }
@@ -210,14 +211,14 @@ public class GamePanel extends StackPane {
         p2.resolveCollisions(worldSurfaces, now);
         removeExpiredEffects(now);
         
-        
         bullets.removeIf(bullet -> !bullet.isActive());
-        barrels.removeIf(barrel -> !barrel.active);
+        traps.removeIf(trap -> !trap.isActive());
 
         if (!isCombatLocked(now)) {
+            checkLandmineTriggers(now);
             handleBulletHits(now);
             updateWeaponDrops(now);
-            updateBarrelDrops(now);
+            updateTrapDrops(now);
             handleWeaponPickups(now);
             handleBlastZoneDeaths(now);
         }
@@ -240,6 +241,19 @@ public class GamePanel extends StackPane {
         return positive ? 1.0 : -1.0;
     }
 
+    private void checkLandmineTriggers(long now) {
+        for (Trap trap : traps) {
+            if (!trap.isActive() || !(trap instanceof Landmine)) continue;
+            
+            boolean p1Step = trap.getBounds().intersects(p1.getBounds()) && !p1.isInvulnerable(now);
+            boolean p2Step = trap.getBounds().intersects(p2.getBounds()) && !p2.isInvulnerable(now);
+            
+            if (p1Step || p2Step) {
+                triggerExplosion(trap, now);
+            }
+        }
+    }
+
     private void performAction(Player attacker, Player defender) {
         long now = System.currentTimeMillis();
         if (!attacker.canAction(now)) {
@@ -260,21 +274,18 @@ public class GamePanel extends StackPane {
             return;
         }
 
-        
         boolean attackHit = false;
         Rectangle2D meleeHitbox = attacker.getMeleeHitbox();
 
-        
-        for (ExplosiveBarrel barrel : barrels) {
-            if (barrel.active && meleeHitbox.intersects(barrel.getBounds())) {
+        for (Trap trap : traps) {
+            if (trap.isActive() && meleeHitbox.intersects(trap.getBounds())) {
                 SoundManager.getInstance().playEffect("melee");
-                triggerExplosion(barrel, now);
+                triggerExplosion(trap, now);
                 attackHit = true;
                 break; 
             }
         }
 
-        
         if (!attackHit && !defender.isInvulnerable(now) && meleeHitbox.intersects(defender.getBounds())) {
             SoundManager.getInstance().playEffect("melee"); 
             defender.applyKnockback(attacker.getFacingDirection() * GameSettings.MELEE_FORCE, GameSettings.MELEE_VERTICAL_FORCE);
@@ -291,7 +302,6 @@ public class GamePanel extends StackPane {
                 continue;
             }
 
-            
             for (PlatformSurface surface : worldSurfaces) {
                 if (bullet.getBounds().intersects(surface.getBounds())) {
                     var bulletBounds = bullet.getBounds();
@@ -302,17 +312,15 @@ public class GamePanel extends StackPane {
             }
             if (!bullet.isActive()) continue;
 
-            
-            for (ExplosiveBarrel barrel : barrels) {
-                if (barrel.active && bullet.getBounds().intersects(barrel.getBounds())) {
+            for (Trap trap : traps) {
+                if (trap.isActive() && bullet.getBounds().intersects(trap.getBounds())) {
                     bullet.deactivate();
-                    triggerExplosion(barrel, now);
+                    triggerExplosion(trap, now);
                     break;
                 }
             }
             if (!bullet.isActive()) continue;
 
-            
             Player owner = bullet.getOwner();
             Player target = owner == p1 ? p2 : p1;
             if (bullet.getBounds().intersects(target.getBounds())) {
@@ -338,23 +346,27 @@ public class GamePanel extends StackPane {
         }
     }
     
-    private void triggerExplosion(ExplosiveBarrel barrel, long now) {
-        barrel.active = false;
+    private void triggerExplosion(Trap trap, long now) {
+        trap.deactivate();
         SoundManager.getInstance().playEffect("explosion"); 
-        triggerCameraShake(GameSettings.SCREEN_SHAKE_STRENGTH * 3.0, 350L);
+        
+        
+        double forceModifier = trap.getExplosionForceMultiplier();
+        triggerCameraShake(GameSettings.SCREEN_SHAKE_STRENGTH * 3.0 * forceModifier, (long)(350 * forceModifier));
 
-        double centerX = barrel.x + 16.0;
-        double centerY = barrel.y + 21.0;
+        double centerX = trap.getBounds().getMinX() + trap.getBounds().getWidth() * 0.5;
+        double centerY = trap.getBounds().getMinY() + trap.getBounds().getHeight() * 0.5;
 
         
-        addEffect("explosion", explosionImage, centerX - 90, centerY - 90, 180, 180, 300L);
+        double effectSize = 180 * forceModifier;
+        addEffect("explosion", explosionImage, centerX - (effectSize/2), centerY - (effectSize/2), effectSize, effectSize, 300L);
 
         
-        applyExplosionForce(p1, centerX, centerY, now);
-        applyExplosionForce(p2, centerX, centerY, now);
+        applyExplosionForce(p1, centerX, centerY, now, forceModifier);
+        applyExplosionForce(p2, centerX, centerY, now, forceModifier);
     }
     
-    private void applyExplosionForce(Player player, double ex, double ey, long now) {
+    private void applyExplosionForce(Player player, double ex, double ey, long now, double trapForceModifier) {
         if (player.isInvulnerable(now)) return;
 
         var b = player.getBounds();
@@ -364,13 +376,15 @@ public class GamePanel extends StackPane {
         double dx = px - ex;
         double dy = py - ey;
         double dist = Math.sqrt(dx * dx + dy * dy);
-        double radius = 170.0; 
+        
+        
+        double radius = 170.0 * Math.max(1.0, trapForceModifier * 0.8); 
 
         if (dist < radius) {
-            double forceMultiplier = 1.0 - (dist / radius);
+            double distanceMultiplier = 1.0 - (dist / radius);
             
-            double forceX = (dx / dist) * 1250.0 * forceMultiplier;
-            double forceY = -750.0 * forceMultiplier - 150.0; 
+            double forceX = (dx / dist) * 1250.0 * distanceMultiplier * trapForceModifier;
+            double forceY = (-750.0 * distanceMultiplier - 150.0) * trapForceModifier;
 
             player.applyKnockback(forceX, forceY);
             addEffect("blood", bloodImage, px - 15, py - 15, 30, 30, 250L);
@@ -422,7 +436,7 @@ public class GamePanel extends StackPane {
 
         bullets.clear();
         weaponDrops.clear();
-        barrels.clear();
+        traps.clear();
 
         if (p1Out && p2Out) {
             p1Stocks--;
@@ -524,18 +538,17 @@ public class GamePanel extends StackPane {
         renderables.add(p1);
         renderables.add(p2);
         renderables.addAll(bullets);
+        renderables.addAll(traps); 
         for (Renderable renderable : renderables) {
             renderable.render(gc);
         }
 
         renderWeaponDrops();
-        renderBarrels();
 
         for (HitEffect effect : hitEffects) {
             if (effect.image != EMPTY_IMAGE) {
                 gc.drawImage(effect.image, effect.x, effect.y, effect.width, effect.height);
             } else if ("explosion".equals(effect.type)) {
-                
                 double t = Math.max(0, (double) (effect.expiresAt - now) / effect.totalLife);
                 gc.setFill(Color.web("#ff4400", t * 0.75));
                 gc.fillOval(effect.x, effect.y, effect.width, effect.height);
@@ -552,26 +565,6 @@ public class GamePanel extends StackPane {
 
         renderHud();
         renderCenterBanner(now);
-    }
-    
-    private void renderBarrels() {
-        for (ExplosiveBarrel barrel : barrels) {
-            if (!barrel.active) continue;
-            
-            if (barrelImage != EMPTY_IMAGE) {
-                gc.drawImage(barrelImage, barrel.x, barrel.y, 32, 42);
-            } else {
-                
-                gc.setFill(Color.web("#a32222"));
-                gc.fillRoundRect(barrel.x, barrel.y, 32, 42, 6, 6);
-                gc.setFill(Color.web("#333333"));
-                gc.fillRect(barrel.x, barrel.y + 8, 32, 4);
-                gc.fillRect(barrel.x, barrel.y + 30, 32, 4);
-                gc.setFill(Color.YELLOW);
-                gc.setFont(Font.font("Impact", FontWeight.NORMAL, 14));
-                gc.fillText("TNT", barrel.x + 5, barrel.y + 25);
-            }
-        }
     }
 
     private void renderExtendedMap() {
@@ -822,22 +815,20 @@ public class GamePanel extends StackPane {
         weaponDrops.clear();
         hitEffects.clear();
         
-        barrels.clear();
-        spawnBarrels(); 
+        traps.clear();
+        spawnTraps(); 
         
         spawnRoundPlayers(now);
         freezeUntilMillis = now + GameSettings.ROUND_START_COUNTDOWN_MS;
         nextGunDropAtMillis = freezeUntilMillis + GameSettings.FIRST_DROP_DELAY_MS;
-        nextBarrelDropAtMillis = freezeUntilMillis + GameSettings.BARREL_DROP_INTERVAL_MS;
+        nextTrapDropAtMillis = freezeUntilMillis + GameSettings.TRAP_DROP_INTERVAL_MS;
         showCenterBanner("ROUND " + roundNumber, GameSettings.ROUND_START_COUNTDOWN_MS);
     }
     
-    private void spawnBarrels() {
+    private void spawnTraps() {
         if (worldSurfaces.isEmpty()) return;
 
-        
-        int numBarrels = random.nextInt(3) + 1;
-        
+        int numTraps = random.nextInt(3) + 1;
         
         List<PlatformSurface> candidates = worldSurfaces.stream()
                 .filter(s -> s.getBounds().getWidth() > 70.0)
@@ -845,7 +836,7 @@ public class GamePanel extends StackPane {
 
         if (candidates.isEmpty()) return;
 
-        for (int i = 0; i < numBarrels; i++) {
+        for (int i = 0; i < numTraps; i++) {
             PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
             var bounds = surface.getBounds();
             double spawnMinX = bounds.getMinX() + 6.0;
@@ -853,43 +844,15 @@ public class GamePanel extends StackPane {
             
             if (spawnMaxX > spawnMinX) {
                 double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
-                double spawnY = bounds.getMinY() - 42.0; 
-                barrels.add(new ExplosiveBarrel(spawnX, spawnY));
+                double spawnY = bounds.getMinY();
+                
+                if (random.nextBoolean()) {
+                    traps.add(new ExplosiveBarrel(spawnX, spawnY));
+                } else {
+                    traps.add(new Landmine(spawnX, spawnY));
+                }
             }
         }
-    }
-
-    private void updateBarrelDrops(long now) {
-        if (now < nextBarrelDropAtMillis) {
-            return;
-        }
-        
-        
-        if (barrels.size() >= 3) {
-            nextBarrelDropAtMillis = now + GameSettings.BARREL_DROP_INTERVAL_MS;
-            return;
-        }
-
-        if (worldSurfaces.isEmpty()) return;
-
-        List<PlatformSurface> candidates = worldSurfaces.stream()
-                .filter(s -> s.getBounds().getWidth() > 70.0)
-                .toList();
-
-        if (!candidates.isEmpty()) {
-            PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
-            var bounds = surface.getBounds();
-            double spawnMinX = bounds.getMinX() + 6.0;
-            double spawnMaxX = bounds.getMaxX() - 32.0 - 6.0;
-            
-            if (spawnMaxX > spawnMinX) {
-                double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
-                double spawnY = bounds.getMinY() - 42.0;
-                barrels.add(new ExplosiveBarrel(spawnX, spawnY));
-            }
-        }
-        
-        nextBarrelDropAtMillis = now + GameSettings.BARREL_DROP_INTERVAL_MS;
     }
 
     private void setupPauseUi() {
@@ -1037,7 +1000,7 @@ public class GamePanel extends StackPane {
             }
             return transparent ? makeBackgroundTransparent(image) : image;
         }
-        return EMPTY_IMAGE; 
+        return EMPTY_IMAGE;
     }
 
     private static Image makeBackgroundTransparent(Image raw) {
@@ -1094,6 +1057,43 @@ public class GamePanel extends StackPane {
     private void triggerCameraShake(double strength, long durationMillis) {
         shakeStrength = Math.max(shakeStrength, strength);
         shakeUntilMillis = Math.max(shakeUntilMillis, System.currentTimeMillis() + durationMillis);
+    }
+
+    private void updateTrapDrops(long now) {
+        if (now < nextTrapDropAtMillis) {
+            return;
+        }
+        
+        if (traps.size() >= 3) {
+            nextTrapDropAtMillis = now + GameSettings.TRAP_DROP_INTERVAL_MS;
+            return;
+        }
+
+        if (worldSurfaces.isEmpty()) return;
+
+        List<PlatformSurface> candidates = worldSurfaces.stream()
+                .filter(s -> s.getBounds().getWidth() > 70.0)
+                .toList();
+
+        if (!candidates.isEmpty()) {
+            PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
+            var bounds = surface.getBounds();
+            double spawnMinX = bounds.getMinX() + 6.0;
+            double spawnMaxX = bounds.getMaxX() - 32.0 - 6.0;
+            
+            if (spawnMaxX > spawnMinX) {
+                double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
+                double spawnY = bounds.getMinY();
+                
+                if (random.nextBoolean()) {
+                    traps.add(new ExplosiveBarrel(spawnX, spawnY));
+                } else {
+                    traps.add(new Landmine(spawnX, spawnY));
+                }
+            }
+        }
+        
+        nextTrapDropAtMillis = now + GameSettings.TRAP_DROP_INTERVAL_MS;
     }
 
     private void updateWeaponDrops(long now) {
@@ -1168,21 +1168,6 @@ public class GamePanel extends StackPane {
     private record WeaponDrop(double x, double y, Gun gun) {
         private javafx.geometry.Rectangle2D bounds() {
             return new javafx.geometry.Rectangle2D(x, y, GameSettings.BOX_SIZE, GameSettings.BOX_SIZE);
-        }
-    }
-
-    
-    private static final class ExplosiveBarrel {
-        double x, y;
-        boolean active = true;
-
-        ExplosiveBarrel(double x, double y) {
-            this.x = x;
-            this.y = y;
-        }
-
-        Rectangle2D getBounds() {
-            return new Rectangle2D(x, y, 32, 42); 
         }
     }
 

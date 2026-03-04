@@ -86,8 +86,8 @@ public final class SoundManager {
             if (mediaUrl != null) {
                 Media media = new Media(mediaUrl);
                 bgmPlayer = new MediaPlayer(media);
-                bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE); // เล่นวนซ้ำ
-                bgmPlayer.setVolume(0.35); // ปรับระดับความดังเพลง
+                bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE); 
+                bgmPlayer.setVolume(0.35); 
                 bgmPlayer.play();
             } else {
                 System.out.println("Warning: BGM not found: " + resourcePath);
