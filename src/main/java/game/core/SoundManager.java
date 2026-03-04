@@ -19,18 +19,17 @@ public final class SoundManager {
     private MediaPlayer bgmPlayer;
     private final Random random = new Random();
 
-    // รายชื่อไฟล์ BGM ในโฟลเดอร์ resources ที่ระบบจะสุ่มนำมาเล่น
     private final List<String> bgmFiles = List.of("/bgm1.mp3", "/bgm2.mp3", "/bgm3.mp3");
 
     private SoundManager() {
-        // โหลดเสียง Effects ต่างๆ เตรียมไว้ล่วงหน้า
         loadEffect("shoot", "/shoot.mp3");
         loadEffect("step", "/step.mp3");
         loadEffect("hit", "/hit.mp3");
         loadEffect("melee", "/melee.mp3");
-        loadEffect("die", "/die.mp3"); // เพิ่มโหลดเสียงตอนตกตาย
+        loadEffect("die", "/die.mp3"); 
         loadEffect("pickup", "/pickup.mp3");
-        loadEffect("click", "/click.mp3"); // เพิ่มเสียงคลิกปุ่ม
+        loadEffect("click", "/click.mp3"); 
+        loadEffect("explosion", "/explosion.mp3");
     }
 
     public static SoundManager getInstance() {
@@ -44,7 +43,6 @@ public final class SoundManager {
                 effects.put(name, new AudioClip(url.toExternalForm()));
                 return;
             }
-            // เผื่อกรณีรันผ่าน IDE โดยตรงแล้วหา Resource ไม่เจอ
             Path fallback = Paths.get("src", "main", "resources", resourcePath.replaceFirst("^/", ""));
             if (Files.exists(fallback)) {
                 effects.put(name, new AudioClip(fallback.toUri().toString()));
@@ -59,9 +57,8 @@ public final class SoundManager {
     public void playEffect(String name) {
         AudioClip clip = effects.get(name);
         if (clip != null) {
-            // สุ่ม Pitch (ระดับเสียงและความเร็ว) เล็กน้อยเพื่อให้เสียงดูมีมิติ ไม่ซ้ำซากเกินไป
             if ("shoot".equals(name) || "step".equals(name) || "hit".equals(name)) {
-                clip.setRate(0.9 + random.nextDouble() * 0.2);
+                clip.setRate(0.9 + random.nextDouble() * 0.2); 
             } else {
                 clip.setRate(1.0);
             }
@@ -99,7 +96,7 @@ public final class SoundManager {
             System.err.println("Failed to load BGM: " + resourcePath + " (" + e.getMessage() + ")");
         }
     }
-
+    
     public void playMenuBgm() {
         stopBgm();
         try {
@@ -119,7 +116,7 @@ public final class SoundManager {
                 Media media = new Media(mediaUrl);
                 bgmPlayer = new MediaPlayer(media);
                 bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-                bgmPlayer.setVolume(0.40); // ปรับระดับความดังเพลงหน้าเมนู
+                bgmPlayer.setVolume(1); 
                 bgmPlayer.play();
             } else {
                 System.out.println("Warning: Menu BGM not found: " + resourcePath);

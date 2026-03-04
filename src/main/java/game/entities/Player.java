@@ -226,15 +226,17 @@ public abstract class Player extends GameEntity {
         double db = a.getBlue() - b.getBlue();
         return Math.sqrt(dr * dr + dg * dg + db * db);
     }
+    
+    public Rectangle2D getMeleeHitbox() {
+        if (facingDirection > 0) {
+            return new Rectangle2D(x + width, y + 8, GameSettings.MELEE_RANGE, height - 16);
+        } else {
+            return new Rectangle2D(x - GameSettings.MELEE_RANGE, y + 8, GameSettings.MELEE_RANGE, height - 16);
+        }
+    }
 
     public boolean isMeleeHit(Player other) {
-        Rectangle2D hitbox;
-        if (facingDirection > 0) {
-            hitbox = new Rectangle2D(x + width, y + 8, GameSettings.MELEE_RANGE, height - 16);
-        } else {
-            hitbox = new Rectangle2D(x - GameSettings.MELEE_RANGE, y + 8, GameSettings.MELEE_RANGE, height - 16);
-        }
-        return hitbox.intersects(other.getBounds());
+        return getMeleeHitbox().intersects(other.getBounds());
     }
 
     public void applyKnockback(double forceX, double forceY) {
