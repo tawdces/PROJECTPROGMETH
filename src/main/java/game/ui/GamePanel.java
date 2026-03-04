@@ -3,6 +3,7 @@ package game.ui;
 import game.config.GameSettings;
 import game.core.PlatformSurface;
 import game.core.Renderable;
+import game.core.SoundManager;
 import game.core.Updatable;
 import game.entities.Bullet;
 import game.entities.Player;
@@ -125,6 +126,8 @@ public class GamePanel extends StackPane {
         setupPauseUi();
         prepareRound(1);
 
+        SoundManager.getInstance().playRandomBgm(); // เริ่มเล่นเพลงประกอบ
+
         gameLoop.start();
     }
 
@@ -235,6 +238,7 @@ public class GamePanel extends StackPane {
             List<Bullet> fired = attacker.shoot();
             bullets.addAll(fired);
             if (!fired.isEmpty()) {
+                SoundManager.getInstance().playEffect("shoot"); // เสียงยิงปืน
                 double recoil = GameSettings.SHOOT_RECOIL_BASE
                         + Math.max(0, fired.size() - 1) * GameSettings.SHOOT_RECOIL_PER_BULLET;
                 attacker.applyKnockback(-attacker.getFacingDirection() * recoil, GameSettings.SHOOT_RECOIL_VERTICAL_FORCE);
@@ -245,6 +249,7 @@ public class GamePanel extends StackPane {
         }
 
         if (!defender.isInvulnerable(now) && attacker.isMeleeHit(defender)) {
+            SoundManager.getInstance().playEffect("melee"); // เสียงตีระยะประชิด
             defender.applyKnockback(attacker.getFacingDirection() * GameSettings.MELEE_FORCE, GameSettings.MELEE_VERTICAL_FORCE);
             addEffect(bloodImage, defender.getBounds().getMinX() + 10, defender.getBounds().getMinY() + 16, 20, 20, 180L);
             triggerCameraShake(GameSettings.SCREEN_SHAKE_STRENGTH * 0.7, GameSettings.SCREEN_SHAKE_DURATION_MS);
@@ -276,6 +281,7 @@ public class GamePanel extends StackPane {
                 var bulletBounds = bullet.getBounds();
                 addEffect(bulletHitImage, bulletBounds.getMinX(), bulletBounds.getMinY(), 22, 22, 150L);
                 if (!target.isInvulnerable(now)) {
+                    SoundManager.getInstance().playEffect("hit"); // เสียงโดนกระสุนปืน
                     target.applyKnockback(bullet.getImpactForceX(), bullet.getImpactForceY());
                     var targetBounds = target.getBounds();
                     addEffect(
@@ -333,6 +339,9 @@ public class GamePanel extends StackPane {
         if (!p1Out && !p2Out) {
             return;
         }
+
+        // เล่นเสียงตอนตกตายเมื่อมีผู้เล่นหลุดขอบจอ
+        SoundManager.getInstance().playEffect("die");
 
         bullets.clear();
         weaponDrops.clear();
@@ -782,6 +791,7 @@ public class GamePanel extends StackPane {
 
     private void shutdownGameSystems() {
         gameLoop.stop();
+        SoundManager.getInstance().stopBgm(); // ปิด BGM เมื่อออกจากแมตช์
     }
 
     private List<PlatformSurface> createSurfacesForMap(String mapResourcePath) {
@@ -955,6 +965,7 @@ public class GamePanel extends StackPane {
             return false;
         }
         player.equipGun(drop.gun(), nowMillis);
+        SoundManager.getInstance().playEffect("pickup"); // เล่นเสียงตอนเก็บไอเทม
         addEffect(bulletHitImage, drop.x() + 4, drop.y() + 4, 24, 24, 160L);
         return true;
     }

@@ -3,6 +3,7 @@ package game.entities;
 import game.config.GameSettings;
 import game.core.GameEntity;
 import game.core.PlatformSurface;
+import game.core.SoundManager;
 import game.core.SpriteFrame;
 import game.entities.weapons.Gun;
 import game.entities.weapons.GunRegistry;
@@ -43,6 +44,9 @@ public abstract class Player extends GameEntity {
     private long nextActionAtMillis;
     private int jumpsUsed;
     private long invulnerableUntilMillis;
+
+    private double stepDistance;
+    private static final double STEP_INTERVAL = 60.0; // ระยะทางที่เดินก่อนจะเล่นเสียงก้าวถัดไป
 
     protected Player(
             double startX,
@@ -89,11 +93,23 @@ public abstract class Player extends GameEntity {
         previousX = x;
         previousY = y;
 
-        x += (horizontalInput * GameSettings.MOVE_SPEED + knockbackVX) * deltaSeconds;
+        double moveX = horizontalInput * GameSettings.MOVE_SPEED * deltaSeconds;
+        x += moveX + (knockbackVX * deltaSeconds);
         y += velocityY * deltaSeconds;
         velocityY += GameSettings.GRAVITY * deltaSeconds;
 
         knockbackVX *= Math.pow(GameSettings.KNOCKBACK_DAMPING, deltaSeconds * 60.0);
+
+        // จัดการเสียงเดินเมื่อตัวละครอยู่บนพื้นและมีการขยับ
+        if (onGround && Math.abs(horizontalInput) > 0.01) {
+            stepDistance += Math.abs(moveX);
+            if (stepDistance > STEP_INTERVAL) {
+                SoundManager.getInstance().playEffect("step");
+                stepDistance = 0.0;
+            }
+        } else if (!onGround) {
+            stepDistance = STEP_INTERVAL; // พร้อมเล่นเสียงก้าวแรกทันทีที่ลงพื้นและเดินต่อ
+        }
     }
 
     @Override
