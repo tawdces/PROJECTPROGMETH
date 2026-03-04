@@ -1,6 +1,7 @@
 package game.ui;
 
 import game.config.GameSettings;
+import game.core.SoundManager;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -67,28 +68,38 @@ public class MapSelectPanel extends VBox {
         Button next = new Button("NEXT: WEAPON SELECT");
         next.setPrefWidth(260);
         styleButton(next, "#3c8cff", "#1f5ec9");
-        next.setOnAction(event -> onMapSelected.accept(MAP_RESOURCES.get(index[0])));
+        next.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
+            onMapSelected.accept(MAP_RESOURCES.get(index[0]));
+        });
 
         Button back = new Button("BACK");
         back.setPrefWidth(260);
         styleButton(back, "#5a6577", "#3a4354");
-        back.setOnAction(event -> onBackToMenu.run());
+        back.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
+            onBackToMenu.run();
+        });
 
         setFocusTraversable(true);
         setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.A || event.getCode() == KeyCode.LEFT) {
+                SoundManager.getInstance().playEffect("click");
                 index[0] = cycleIndex(index[0], -1, MAP_RESOURCES.size());
                 mapPreview.setImage(loadMap(index[0]));
                 mapName.setText(labelFor(index[0]));
                 page.setText("Arena " + (index[0] + 1) + " / " + MAP_RESOURCES.size());
             } else if (event.getCode() == KeyCode.D || event.getCode() == KeyCode.RIGHT) {
+                SoundManager.getInstance().playEffect("click");
                 index[0] = cycleIndex(index[0], 1, MAP_RESOURCES.size());
                 mapPreview.setImage(loadMap(index[0]));
                 mapName.setText(labelFor(index[0]));
                 page.setText("Arena " + (index[0] + 1) + " / " + MAP_RESOURCES.size());
             } else if (event.getCode() == KeyCode.ENTER) {
+                SoundManager.getInstance().playEffect("click");
                 onMapSelected.accept(MAP_RESOURCES.get(index[0]));
             } else if (event.getCode() == KeyCode.ESCAPE) {
+                SoundManager.getInstance().playEffect("click");
                 onBackToMenu.run();
             }
         });

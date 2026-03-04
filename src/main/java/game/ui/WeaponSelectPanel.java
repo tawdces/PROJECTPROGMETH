@@ -1,6 +1,7 @@
 package game.ui;
 
 import game.config.GameSettings;
+import game.core.SoundManager;
 import game.entities.weapons.Gun;
 import game.entities.weapons.GunRegistry;
 import javafx.geometry.Pos;
@@ -82,12 +83,18 @@ public class WeaponSelectPanel extends VBox {
         Button start = new Button("START");
         start.setPrefWidth(230);
         styleButton(start, "#3c8cff", "#1f5ec9");
-        start.setOnAction(event -> onStart.accept(choices.get(p1Index[0]), choices.get(p2Index[0])));
+        start.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
+            onStart.accept(choices.get(p1Index[0]), choices.get(p2Index[0]));
+        });
 
         Button back = new Button("BACK");
         back.setPrefWidth(230);
         styleButton(back, "#5a6577", "#3a4354");
-        back.setOnAction(event -> onBackToMenu.run());
+        back.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
+            onBackToMenu.run();
+        });
 
         Label hint = new Label("A/D change P1 | Left/Right change P2 | Enter to start | Esc to menu");
         hint.setTextFill(Color.web("#d3e7ff"));
@@ -96,20 +103,26 @@ public class WeaponSelectPanel extends VBox {
         setFocusTraversable(true);
         setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.A) {
+                SoundManager.getInstance().playEffect("click");
                 p1Index[0] = cycleIndex(p1Index[0], -1, choices.size());
                 p1Weapon.setText(choices.get(p1Index[0]).label());
             } else if (event.getCode() == KeyCode.D) {
+                SoundManager.getInstance().playEffect("click");
                 p1Index[0] = cycleIndex(p1Index[0], 1, choices.size());
                 p1Weapon.setText(choices.get(p1Index[0]).label());
             } else if (event.getCode() == KeyCode.LEFT) {
+                SoundManager.getInstance().playEffect("click");
                 p2Index[0] = cycleIndex(p2Index[0], -1, choices.size());
                 p2Weapon.setText(choices.get(p2Index[0]).label());
             } else if (event.getCode() == KeyCode.RIGHT) {
+                SoundManager.getInstance().playEffect("click");
                 p2Index[0] = cycleIndex(p2Index[0], 1, choices.size());
                 p2Weapon.setText(choices.get(p2Index[0]).label());
             } else if (event.getCode() == KeyCode.ENTER) {
+                SoundManager.getInstance().playEffect("click");
                 onStart.accept(choices.get(p1Index[0]), choices.get(p2Index[0]));
             } else if (event.getCode() == KeyCode.ESCAPE) {
+                SoundManager.getInstance().playEffect("click");
                 onBackToMenu.run();
             }
         });
