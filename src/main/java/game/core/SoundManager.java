@@ -19,7 +19,7 @@ public final class SoundManager {
     private MediaPlayer bgmPlayer;
     private final Random random = new Random();
 
-    private final List<String> bgmFiles = List.of("/bgm1.mp3", "/bgm2.mp3", "/bgm3.mp3");
+    private final List<String> bgmFiles = List.of("/bgm1.mp3", "/bgm2.mp3", "/bgm3.mp3", "/bgm4.mp3");
 
     private SoundManager() {
         loadEffect("shoot", "/shoot.mp3");

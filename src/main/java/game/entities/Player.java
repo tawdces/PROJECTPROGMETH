@@ -43,10 +43,14 @@ public abstract class Player extends GameEntity {
     private Gun equippedGun = GunRegistry.UNARMED;
     private long nextActionAtMillis;
     private int jumpsUsed;
+    
+    
     private long invulnerableUntilMillis;
+    private double currentSpeedMultiplier = 1.0;
+    private long speedBoostUntilMillis;
 
     private double stepDistance;
-    private static final double STEP_INTERVAL = 60.0; 
+    private static final double STEP_INTERVAL = 60.0;
 
     protected Player(
             double startX,
@@ -90,17 +94,23 @@ public abstract class Player extends GameEntity {
 
     @Override
     public void update(double deltaSeconds) {
+        long nowMillis = System.currentTimeMillis();
         previousX = x;
         previousY = y;
 
-        double moveX = horizontalInput * GameSettings.MOVE_SPEED * deltaSeconds;
+        
+        if (nowMillis > speedBoostUntilMillis) {
+            currentSpeedMultiplier = 1.0;
+        }
+
+        
+        double moveX = horizontalInput * (GameSettings.MOVE_SPEED * currentSpeedMultiplier) * deltaSeconds;
         x += moveX + (knockbackVX * deltaSeconds);
         y += velocityY * deltaSeconds;
         velocityY += GameSettings.GRAVITY * deltaSeconds;
 
         knockbackVX *= Math.pow(GameSettings.KNOCKBACK_DAMPING, deltaSeconds * 60.0);
 
-        
         if (onGround && Math.abs(horizontalInput) > 0.01) {
             stepDistance += Math.abs(moveX);
             if (stepDistance > STEP_INTERVAL) {
@@ -116,6 +126,9 @@ public abstract class Player extends GameEntity {
     public void render(GraphicsContext gc) {
         long nowMillis = System.currentTimeMillis();
         boolean invulnerable = isInvulnerable(nowMillis);
+        boolean speedBoosted = isSpeedBoosted(nowMillis);
+        
+        
         boolean blink = invulnerable && ((nowMillis / 85L) % 2L == 0L);
 
         double drawX = x;
@@ -160,15 +173,26 @@ public abstract class Player extends GameEntity {
             }
             gc.restore();
         }
-
         gc.restore();
 
-        if (invulnerable) {
-            gc.setStroke(Color.web("#9ce8ff", 0.90));
-            gc.setLineWidth(2.0);
-            gc.strokeOval(drawX - 3, drawY - 4, drawWidth + 6, drawHeight + 8);
+        
+        if (invulnerable || speedBoosted) {
+            gc.setLineWidth(2.5);
+            
+            if (invulnerable && speedBoosted) {
+                gc.setStroke(Color.web("#9cffad", 0.90)); 
+            } else if (speedBoosted) {
+                gc.setStroke(Color.web("#ffeb6b", 0.90)); 
+            } else {
+                gc.setStroke(Color.web("#9ce8ff", 0.90)); 
+            }
+            
+            
+            double offset = speedBoosted ? (Math.random() * 2 - 1) : 0;
+            gc.strokeOval(drawX - 3 + offset, drawY - 4 + offset, drawWidth + 6, drawHeight + 8);
         }
 
+        
         gc.setFill(Color.color(0.06, 0.08, 0.10, 0.65));
         gc.fillRoundRect(drawX + 4, drawY - 19, 30, 14, 8, 8);
         gc.setFill(Color.WHITE);
@@ -206,7 +230,10 @@ public abstract class Player extends GameEntity {
         for (int py = 0; py < h; py++) {
             for (int px = 0; px < w; px++) {
                 Color c = reader.getColor(px, py);
-                boolean transparentByKey = colorDistance(c, key) < 0.18;
+                double dr = c.getRed() - key.getRed();
+                double dg = c.getGreen() - key.getGreen();
+                double db = c.getBlue() - key.getBlue();
+                boolean transparentByKey = Math.sqrt(dr * dr + dg * dg + db * db) < 0.18;
                 boolean transparentByWhite = c.getOpacity() > 0.0
                         && c.getBrightness() > 0.94
                         && c.getSaturation() < 0.16;
@@ -220,13 +247,6 @@ public abstract class Player extends GameEntity {
         return out;
     }
 
-    private double colorDistance(Color a, Color b) {
-        double dr = a.getRed() - b.getRed();
-        double dg = a.getGreen() - b.getGreen();
-        double db = a.getBlue() - b.getBlue();
-        return Math.sqrt(dr * dr + dg * dg + db * db);
-    }
-    
     public Rectangle2D getMeleeHitbox() {
         if (facingDirection > 0) {
             return new Rectangle2D(x + width, y + 8, GameSettings.MELEE_RANGE, height - 16);
@@ -242,6 +262,17 @@ public abstract class Player extends GameEntity {
     public void applyKnockback(double forceX, double forceY) {
         knockbackVX += forceX;
         velocityY += forceY;
+    }
+
+    
+    public void applyShield(long durationMillis, long nowMillis) {
+        
+        this.invulnerableUntilMillis = Math.max(this.invulnerableUntilMillis, nowMillis) + durationMillis;
+    }
+
+    public void applySpeedBoost(double multiplier, long durationMillis, long nowMillis) {
+        this.currentSpeedMultiplier = multiplier;
+        this.speedBoostUntilMillis = Math.max(this.speedBoostUntilMillis, nowMillis) + durationMillis;
     }
 
     public void resolveCollisions(List<PlatformSurface> surfaces, long nowMillis) {
@@ -360,6 +391,10 @@ public abstract class Player extends GameEntity {
         return nowMillis < invulnerableUntilMillis;
     }
 
+    public boolean isSpeedBoosted(long nowMillis) {
+        return nowMillis < speedBoostUntilMillis;
+    }
+
     private GunPose computeGunPose(Gun gun) {
         double gunWidth = Math.min(gun.renderWidth(), width * GUN_WIDTH_RATIO);
         double gunHeight = Math.max(12.0, gunWidth * GUN_HEIGHT_RATIO);
@@ -387,6 +422,8 @@ public abstract class Player extends GameEntity {
         dropThroughUntilMillis = 0L;
         jumpsUsed = 0;
         nextActionAtMillis = nowMillis + 180L;
+        currentSpeedMultiplier = 1.0;
+        speedBoostUntilMillis = 0L;
         invulnerableUntilMillis = nowMillis + GameSettings.RESPAWN_INVULNERABILITY_MS;
     }
 

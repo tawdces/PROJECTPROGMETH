@@ -14,20 +14,20 @@ public class SpeedPowerUp extends PowerUp {
 
     @Override
     public void applyEffect(Player player, long nowMillis) {
-        // เพิ่มความเร็ว 1.6 เท่า เป็นเวลา 5 วินาที
+        
         player.applySpeedBoost(1.6, 5000, nowMillis);
     }
 
     @Override
     public void render(GraphicsContext gc) {
-        // วาดกล่องไอเทมวิ่งเร็ว (สีเหลือง)
+        
         gc.setFill(Color.web("#ffcc00", 0.85));
         gc.fillRoundRect(x, y, width, height, 8, 8);
         gc.setStroke(Color.web("#ffff88"));
         gc.setLineWidth(2.0);
         gc.strokeRoundRect(x, y, width, height, 8, 8);
         
-        // สัญลักษณ์ตรงกลาง
+        
         gc.setFill(Color.web("#aa4400"));
         gc.setFont(Font.font("Impact", FontWeight.NORMAL, 18));
         gc.fillText(">>", x + 5, y + 19);
