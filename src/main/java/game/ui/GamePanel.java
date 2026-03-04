@@ -9,6 +9,9 @@ import game.entities.Bullet;
 import game.entities.Player;
 import game.entities.PlayerOne;
 import game.entities.PlayerTwo;
+import game.entities.powerups.PowerUp;
+import game.entities.powerups.ShieldPowerUp;
+import game.entities.powerups.SpeedPowerUp;
 import game.entities.traps.ExplosiveBarrel;
 import game.entities.traps.Landmine;
 import game.entities.traps.Trap;
@@ -75,6 +78,7 @@ public class GamePanel extends StackPane {
     private final List<Bullet> bullets = new ArrayList<>();
     private final List<WeaponDrop> weaponDrops = new ArrayList<>();
     private final List<Trap> traps = new ArrayList<>(); 
+    private final List<PowerUp> powerUps = new ArrayList<>(); 
     private final List<HitEffect> hitEffects = new ArrayList<>();
     private final List<PlatformSurface> worldSurfaces;
     private final Set<KeyCode> pressedKeys = new HashSet<>();
@@ -93,8 +97,12 @@ public class GamePanel extends StackPane {
     private double cameraX;
     private double cameraY;
     private double cameraZoom = CAMERA_MIN_ZOOM;
-    private long nextGunDropAtMillis = System.currentTimeMillis() + GameSettings.FIRST_DROP_DELAY_MS;
+    
+    
+    private long nextGunDropAtMillis;
     private long nextTrapDropAtMillis;
+    private long nextPowerUpDropAtMillis;
+    
     private long freezeUntilMillis;
     private long pendingNextRoundAtMillis;
     private String centerBannerText = "";
@@ -202,7 +210,8 @@ public class GamePanel extends StackPane {
         updatables.add(p1);
         updatables.add(p2);
         updatables.addAll(bullets);
-        updatables.addAll(traps); 
+        updatables.addAll(traps);
+        updatables.addAll(powerUps);
         for (Updatable updatable : updatables) {
             updatable.update(deltaSeconds);
         }
@@ -213,13 +222,16 @@ public class GamePanel extends StackPane {
         
         bullets.removeIf(bullet -> !bullet.isActive());
         traps.removeIf(trap -> !trap.isActive());
+        powerUps.removeIf(p -> !p.isActive());
 
         if (!isCombatLocked(now)) {
             checkLandmineTriggers(now);
             handleBulletHits(now);
             updateWeaponDrops(now);
             updateTrapDrops(now);
+            updatePowerUpDrops(now);
             handleWeaponPickups(now);
+            handlePowerUpPickups(now);
             handleBlastZoneDeaths(now);
         }
 
@@ -298,9 +310,7 @@ public class GamePanel extends StackPane {
 
     private void handleBulletHits(long now) {
         for (Bullet bullet : bullets) {
-            if (!bullet.isActive()) {
-                continue;
-            }
+            if (!bullet.isActive()) continue;
 
             for (PlatformSurface surface : worldSurfaces) {
                 if (bullet.getBounds().intersects(surface.getBounds())) {
@@ -350,18 +360,15 @@ public class GamePanel extends StackPane {
         trap.deactivate();
         SoundManager.getInstance().playEffect("explosion"); 
         
-        
         double forceModifier = trap.getExplosionForceMultiplier();
         triggerCameraShake(GameSettings.SCREEN_SHAKE_STRENGTH * 3.0 * forceModifier, (long)(350 * forceModifier));
 
         double centerX = trap.getBounds().getMinX() + trap.getBounds().getWidth() * 0.5;
         double centerY = trap.getBounds().getMinY() + trap.getBounds().getHeight() * 0.5;
 
-        
         double effectSize = 180 * forceModifier;
         addEffect("explosion", explosionImage, centerX - (effectSize/2), centerY - (effectSize/2), effectSize, effectSize, 300L);
 
-        
         applyExplosionForce(p1, centerX, centerY, now, forceModifier);
         applyExplosionForce(p2, centerX, centerY, now, forceModifier);
     }
@@ -377,12 +384,10 @@ public class GamePanel extends StackPane {
         double dy = py - ey;
         double dist = Math.sqrt(dx * dx + dy * dy);
         
-        
         double radius = 170.0 * Math.max(1.0, trapForceModifier * 0.8); 
 
         if (dist < radius) {
             double distanceMultiplier = 1.0 - (dist / radius);
-            
             double forceX = (dx / dist) * 1250.0 * distanceMultiplier * trapForceModifier;
             double forceY = (-750.0 * distanceMultiplier - 150.0) * trapForceModifier;
 
@@ -437,6 +442,7 @@ public class GamePanel extends StackPane {
         bullets.clear();
         weaponDrops.clear();
         traps.clear();
+        powerUps.clear();
 
         if (p1Out && p2Out) {
             p1Stocks--;
@@ -538,12 +544,13 @@ public class GamePanel extends StackPane {
         renderables.add(p1);
         renderables.add(p2);
         renderables.addAll(bullets);
-        renderables.addAll(traps); 
+        renderables.addAll(traps);
         for (Renderable renderable : renderables) {
             renderable.render(gc);
         }
 
         renderWeaponDrops();
+        for (PowerUp p : powerUps) p.render(gc);
 
         for (HitEffect effect : hitEffects) {
             if (effect.image != EMPTY_IMAGE) {
@@ -814,6 +821,7 @@ public class GamePanel extends StackPane {
         bullets.clear();
         weaponDrops.clear();
         hitEffects.clear();
+        powerUps.clear();
         
         traps.clear();
         spawnTraps(); 
@@ -822,6 +830,7 @@ public class GamePanel extends StackPane {
         freezeUntilMillis = now + GameSettings.ROUND_START_COUNTDOWN_MS;
         nextGunDropAtMillis = freezeUntilMillis + GameSettings.FIRST_DROP_DELAY_MS;
         nextTrapDropAtMillis = freezeUntilMillis + GameSettings.TRAP_DROP_INTERVAL_MS;
+        nextPowerUpDropAtMillis = freezeUntilMillis + GameSettings.POWERUP_DROP_INTERVAL_MS; 
         showCenterBanner("ROUND " + roundNumber, GameSettings.ROUND_START_COUNTDOWN_MS);
     }
     
@@ -1059,6 +1068,66 @@ public class GamePanel extends StackPane {
         shakeUntilMillis = Math.max(shakeUntilMillis, System.currentTimeMillis() + durationMillis);
     }
 
+    
+    private void updatePowerUpDrops(long now) {
+        if (now < nextPowerUpDropAtMillis) {
+            return;
+        }
+        
+        if (powerUps.size() >= 2) { 
+            nextPowerUpDropAtMillis = now + GameSettings.POWERUP_DROP_INTERVAL_MS;
+            return;
+        }
+
+        if (worldSurfaces.isEmpty()) return;
+
+        List<PlatformSurface> candidates = worldSurfaces.stream()
+                .filter(s -> s.getBounds().getWidth() > 40.0)
+                .toList();
+
+        if (!candidates.isEmpty()) {
+            PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
+            var bounds = surface.getBounds();
+            double spawnMinX = bounds.getMinX() + 6.0;
+            double spawnMaxX = bounds.getMaxX() - 26.0 - 6.0;
+            
+            if (spawnMaxX > spawnMinX) {
+                double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
+                double spawnY = bounds.getMinY() - 28.0;
+                
+                
+                if (random.nextBoolean()) {
+                    powerUps.add(new ShieldPowerUp(spawnX, spawnY));
+                } else {
+                    powerUps.add(new SpeedPowerUp(spawnX, spawnY));
+                }
+            }
+        }
+        nextPowerUpDropAtMillis = now + GameSettings.POWERUP_DROP_INTERVAL_MS;
+    }
+
+    private void handlePowerUpPickups(long nowMillis) {
+        if (powerUps.isEmpty()) return;
+        
+        powerUps.removeIf(p -> {
+            boolean p1Pickup = p.getBounds().intersects(p1.getBounds());
+            boolean p2Pickup = p.getBounds().intersects(p2.getBounds());
+            
+            if (p1Pickup) {
+                p.applyEffect(p1, nowMillis);
+                SoundManager.getInstance().playEffect("pickup"); 
+                addEffect("pickup", bulletHitImage, p.getBounds().getMinX(), p.getBounds().getMinY(), 24, 24, 160L);
+                return true;
+            } else if (p2Pickup) {
+                p.applyEffect(p2, nowMillis);
+                SoundManager.getInstance().playEffect("pickup"); 
+                addEffect("pickup", bulletHitImage, p.getBounds().getMinX(), p.getBounds().getMinY(), 24, 24, 160L);
+                return true;
+            }
+            return false;
+        });
+    }
+
     private void updateTrapDrops(long now) {
         if (now < nextTrapDropAtMillis) {
             return;
@@ -1092,7 +1161,6 @@ public class GamePanel extends StackPane {
                 }
             }
         }
-        
         nextTrapDropAtMillis = now + GameSettings.TRAP_DROP_INTERVAL_MS;
     }
 

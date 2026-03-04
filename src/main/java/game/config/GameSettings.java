@@ -47,6 +47,7 @@ public final class GameSettings {
     public static final double EXPLOSION_VERTICAL_FORCE = -450.0;
 
     public static final long TRAP_DROP_INTERVAL_MS = 8_000;
+    public static final long POWERUP_DROP_INTERVAL_MS = 20_000;
     
     private GameSettings() {
     }
