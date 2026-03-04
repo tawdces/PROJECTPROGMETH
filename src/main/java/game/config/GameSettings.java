@@ -11,24 +11,35 @@ public final class GameSettings {
     public static final double BULLET_SIZE = 10;
     public static final double BOX_SIZE = 34;
 
-    public static final double MOVE_SPEED = 260.0;
-    public static final double KNOCKBACK_DAMPING = 0.90;
-    public static final double MELEE_RANGE = 26.0;
-    public static final double GRAVITY = 1300.0;
-    public static final double JUMP_VELOCITY = -560.0;
-    public static final double WORLD_FLOOR_Y = HEIGHT + 100.0;
+    public static final double MOVE_SPEED = 320.0;
+    public static final double KNOCKBACK_DAMPING = 0.94;
+    public static final double MELEE_RANGE = 30.0;
+    public static final double GRAVITY = 1500.0;
+    public static final double JUMP_VELOCITY = -620.0;
+    public static final double WORLD_FLOOR_Y = HEIGHT + 130.0;
+    public static final double BLAST_ZONE_MARGIN = 120.0;
 
-    public static final double MELEE_FORCE = 420.0;
-    public static final double MELEE_VERTICAL_FORCE = -40.0;
+    public static final double MELEE_FORCE = 520.0;
+    public static final double MELEE_VERTICAL_FORCE = -65.0;
     public static final double BULLET_FORCE = 640.0;
     public static final double BULLET_VERTICAL_FORCE = -55.0;
     public static final double BULLET_SPEED = 620.0;
+    public static final double SHOOT_RECOIL_BASE = 42.0;
+    public static final double SHOOT_RECOIL_PER_BULLET = 22.0;
+    public static final double SHOOT_RECOIL_VERTICAL_FORCE = -16.0;
 
-    public static final long GUN_DURATION_MS = 25_000;
-    public static final long FIRST_DROP_DELAY_MS = 10_000;
-    public static final long NEXT_DROP_INTERVAL_MS = 30_000;
+    public static final long GUN_DURATION_MS = 15_000;
+    public static final long FIRST_DROP_DELAY_MS = 5_000;
+    public static final long NEXT_DROP_INTERVAL_MS = 12_000;
     public static final long SHOOT_COOLDOWN_MS = 220;
-    public static final long MELEE_COOLDOWN_MS = 280;
+    public static final long MELEE_COOLDOWN_MS = 250;
+    public static final long RESPAWN_INVULNERABILITY_MS = 1_200;
+    public static final int STOCKS_PER_ROUND = 3;
+    public static final int ROUND_WINS_TO_MATCH = 3;
+    public static final long ROUND_END_DELAY_MS = 1_500;
+    public static final long ROUND_START_COUNTDOWN_MS = 1_600;
+    public static final long SCREEN_SHAKE_DURATION_MS = 120;
+    public static final double SCREEN_SHAKE_STRENGTH = 10.0;
 
     private GameSettings() {
     }

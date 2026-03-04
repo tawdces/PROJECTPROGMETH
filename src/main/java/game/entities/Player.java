@@ -20,6 +20,9 @@ import java.util.Objects;
 public abstract class Player extends GameEntity {
 
     private static final int MAX_JUMPS = 2;
+    private static final double GUN_WIDTH_RATIO = 1.25;
+    private static final double GUN_HEIGHT_RATIO = 0.38;
+    private static final Image EMPTY_SPRITE = new WritableImage(1, 1);
 
     private final String name;
     private final Color color;
@@ -35,9 +38,11 @@ public abstract class Player extends GameEntity {
     private boolean onGround;
     private long dropThroughUntilMillis;
     private long gunExpiresAtMillis;
+    private Gun fallbackGun = GunRegistry.UNARMED;
     private Gun equippedGun = GunRegistry.UNARMED;
     private long nextActionAtMillis;
     private int jumpsUsed;
+    private long invulnerableUntilMillis;
 
     protected Player(
             double startX,
@@ -93,10 +98,17 @@ public abstract class Player extends GameEntity {
 
     @Override
     public void render(GraphicsContext gc) {
+        long nowMillis = System.currentTimeMillis();
+        boolean invulnerable = isInvulnerable(nowMillis);
+        boolean blink = invulnerable && ((nowMillis / 85L) % 2L == 0L);
+
         double drawX = x;
         double drawY = y;
         double drawWidth = width;
         double drawHeight = height;
+
+        gc.save();
+        gc.setGlobalAlpha(blink ? 0.48 : 1.0);
 
         if (spriteSheet != null) {
             SpriteFrame frame = selectFrame();
@@ -114,12 +126,13 @@ public abstract class Player extends GameEntity {
             gc.fillRoundRect(drawX, drawY, drawWidth, drawHeight, 10, 10);
         }
 
-        if (hasGun(System.currentTimeMillis())) {
+        if (hasGun(nowMillis)) {
             Image gunSprite = equippedGun.sprite();
-            double gunWidth = equippedGun.renderWidth();
-            double gunHeight = gunWidth * 0.5;
-            double gunX = facingDirection > 0 ? drawX + drawWidth - 1 : drawX - (gunWidth - 1);
-            double gunY = drawY + drawHeight / 2.0 - gunHeight / 2.0;
+            GunPose pose = computeGunPose(equippedGun);
+            double gunX = pose.x();
+            double gunY = pose.y();
+            double gunWidth = pose.width();
+            double gunHeight = pose.height();
 
             gc.save();
             if (facingDirection < 0) {
@@ -132,8 +145,18 @@ public abstract class Player extends GameEntity {
             gc.restore();
         }
 
+        gc.restore();
+
+        if (invulnerable) {
+            gc.setStroke(Color.web("#9ce8ff", 0.90));
+            gc.setLineWidth(2.0);
+            gc.strokeOval(drawX - 3, drawY - 4, drawWidth + 6, drawHeight + 8);
+        }
+
+        gc.setFill(Color.color(0.06, 0.08, 0.10, 0.65));
+        gc.fillRoundRect(drawX + 4, drawY - 19, 30, 14, 8, 8);
         gc.setFill(Color.WHITE);
-        gc.fillText(name, drawX + 6, drawY - 6);
+        gc.fillText(name, drawX + 9, drawY - 8);
     }
 
     private SpriteFrame selectFrame() {
@@ -147,17 +170,31 @@ public abstract class Player extends GameEntity {
     }
 
     private Image makeBackgroundTransparent(Image image) {
-        int w = (int) image.getWidth();
-        int h = (int) image.getHeight();
-        WritableImage out = new WritableImage(w, h);
+        if (image == null || image.isError()) {
+            return EMPTY_SPRITE;
+        }
+        int w = (int) Math.round(image.getWidth());
+        int h = (int) Math.round(image.getHeight());
+        if (w <= 0 || h <= 0) {
+            return EMPTY_SPRITE;
+        }
 
         PixelReader reader = image.getPixelReader();
+        if (reader == null) {
+            return EMPTY_SPRITE;
+        }
+
+        WritableImage out = new WritableImage(w, h);
         PixelWriter writer = out.getPixelWriter();
         Color key = reader.getColor(0, 0);
         for (int py = 0; py < h; py++) {
             for (int px = 0; px < w; px++) {
                 Color c = reader.getColor(px, py);
-                if (colorDistance(c, key) < 0.14) {
+                boolean transparentByKey = colorDistance(c, key) < 0.18;
+                boolean transparentByWhite = c.getOpacity() > 0.0
+                        && c.getBrightness() > 0.94
+                        && c.getSaturation() < 0.16;
+                if (transparentByKey || transparentByWhite) {
                     writer.setColor(px, py, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0.0));
                 } else {
                     writer.setColor(px, py, c);
@@ -245,14 +282,14 @@ public abstract class Player extends GameEntity {
     }
 
     public List<Bullet> shoot() {
-        Gun gun = getEquippedGun(System.currentTimeMillis());
+        long nowMillis = System.currentTimeMillis();
+        Gun gun = getEquippedGun(nowMillis);
         if (gun == GunRegistry.UNARMED) {
             return List.of();
         }
 
-        double bulletX = facingDirection > 0 ? x + width + 2 : x - GameSettings.BULLET_SIZE - 2;
-        double bulletY = y + (height / 2.0) - (GameSettings.BULLET_SIZE / 2.0);
-        return gun.fire(this, bulletX, bulletY, facingDirection);
+        GunPose pose = computeGunPose(gun);
+        return gun.fire(this, pose.muzzleX(), pose.muzzleY(), facingDirection);
     }
 
     public int getFacingDirection() {
@@ -265,7 +302,7 @@ public abstract class Player extends GameEntity {
 
     public Gun getEquippedGun(long nowMillis) {
         if (nowMillis >= gunExpiresAtMillis) {
-            equippedGun = GunRegistry.UNARMED;
+            equippedGun = fallbackGun;
         }
         return equippedGun;
     }
@@ -280,8 +317,9 @@ public abstract class Player extends GameEntity {
     }
 
     public void equipPermanentGun(Gun gun) {
+        fallbackGun = gun;
         equippedGun = gun;
-        gunExpiresAtMillis = gun == GunRegistry.UNARMED ? 0L : Long.MAX_VALUE;
+        gunExpiresAtMillis = Long.MAX_VALUE;
     }
 
     public long getShootCooldownMillis(long nowMillis) {
@@ -300,7 +338,26 @@ public abstract class Player extends GameEntity {
         nextActionAtMillis = nowMillis + cooldownMillis;
     }
 
-    public void respawnFromSky(double spawnX, double spawnY) {
+    public boolean isInvulnerable(long nowMillis) {
+        return nowMillis < invulnerableUntilMillis;
+    }
+
+    private GunPose computeGunPose(Gun gun) {
+        double gunWidth = Math.min(gun.renderWidth(), width * GUN_WIDTH_RATIO);
+        double gunHeight = Math.max(12.0, gunWidth * GUN_HEIGHT_RATIO);
+        double handAnchorX = facingDirection > 0 ? x + width * 0.58 : x + width * 0.42;
+        double handAnchorY = y + height * 0.56;
+        double gunX = facingDirection > 0 ? handAnchorX - gunWidth * 0.20 : handAnchorX - gunWidth * 0.80;
+        double gunY = handAnchorY - gunHeight * 0.58;
+
+        double muzzleX = facingDirection > 0
+                ? gunX + gunWidth - 2.0
+                : gunX + 2.0 - GameSettings.BULLET_SIZE;
+        double muzzleY = gunY + gunHeight * 0.50 - (GameSettings.BULLET_SIZE * 0.5);
+        return new GunPose(gunX, gunY, gunWidth, gunHeight, muzzleX, muzzleY);
+    }
+
+    public void respawnFromSky(double spawnX, double spawnY, long nowMillis) {
         x = spawnX;
         y = spawnY;
         previousX = spawnX;
@@ -311,5 +368,10 @@ public abstract class Player extends GameEntity {
         onGround = false;
         dropThroughUntilMillis = 0L;
         jumpsUsed = 0;
+        nextActionAtMillis = nowMillis + 180L;
+        invulnerableUntilMillis = nowMillis + GameSettings.RESPAWN_INVULNERABILITY_MS;
+    }
+
+    private record GunPose(double x, double y, double width, double height, double muzzleX, double muzzleY) {
     }
 }

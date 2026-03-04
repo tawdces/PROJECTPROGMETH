@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Objects;
 
 public abstract class AbstractGun implements Gun {
+    private static final Image EMPTY_GUN_SPRITE = new WritableImage(1, 1);
+
     private final String label;
     private final long durationMillis;
     private final long cooldownMillis;
@@ -91,21 +93,31 @@ public abstract class AbstractGun implements Gun {
 
     private static Image loadTransparentSprite(String resourcePath) {
         Image raw = new Image(Objects.requireNonNull(AbstractGun.class.getResourceAsStream(resourcePath)));
-        int w = (int) raw.getWidth();
-        int h = (int) raw.getHeight();
-        WritableImage out = new WritableImage(w, h);
+        if (raw.isError()) {
+            return EMPTY_GUN_SPRITE;
+        }
+        int w = (int) Math.round(raw.getWidth());
+        int h = (int) Math.round(raw.getHeight());
+        if (w <= 0 || h <= 0) {
+            return EMPTY_GUN_SPRITE;
+        }
+
         PixelReader reader = raw.getPixelReader();
+        if (reader == null) {
+            return EMPTY_GUN_SPRITE;
+        }
+
+        WritableImage out = new WritableImage(w, h);
         PixelWriter writer = out.getPixelWriter();
         Color key = reader.getColor(0, 0);
 
         for (int py = 0; py < h; py++) {
             for (int px = 0; px < w; px++) {
                 Color c = reader.getColor(px, py);
-                boolean transparentByKey = colorDistance(c, key) < 0.14;
+                boolean transparentByKey = colorDistance(c, key) < 0.18;
                 boolean transparentByWhite = c.getOpacity() > 0.0
-                        && c.getRed() > 0.90
-                        && c.getGreen() > 0.90
-                        && c.getBlue() > 0.90;
+                        && c.getBrightness() > 0.94
+                        && c.getSaturation() < 0.16;
                 if (transparentByKey || transparentByWhite) {
                     writer.setColor(px, py, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0.0));
                 } else {

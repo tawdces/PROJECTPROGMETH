@@ -3,6 +3,7 @@ package game;
 import game.config.GameSettings;
 import game.entities.weapons.Gun;
 import game.ui.GamePanel;
+import game.ui.MapSelectPanel;
 import game.ui.MenuPanel;
 import game.ui.WeaponSelectPanel;
 import javafx.application.Application;
@@ -13,24 +14,33 @@ import javafx.stage.Stage;
 public class GameMain extends Application {
 
     private Stage stage;
+    private String selectedMapResource = "/Map1.png";
 
     @Override
     public void start(Stage primaryStage) {
         this.stage = primaryStage;
-        stage.setTitle("PvP Knockback Game");
+        stage.setTitle("Gun Mayhem Arena");
         stage.setResizable(false);
         showMenu();
         stage.show();
     }
 
     public void showMenu() {
-        MenuPanel menu = new MenuPanel(this::showWeaponSelect, stage::close);
+        MenuPanel menu = new MenuPanel(this::showMapSelect, stage::close);
         Scene scene = new Scene(menu, GameSettings.WIDTH, GameSettings.HEIGHT);
         stage.setScene(scene);
     }
 
-    public void showWeaponSelect() {
-        WeaponSelectPanel weaponSelect = new WeaponSelectPanel(this::startGame, this::showMenu);
+    public void showMapSelect() {
+        MapSelectPanel mapSelect = new MapSelectPanel(this::showWeaponSelect, this::showMenu);
+        Scene scene = new Scene(mapSelect, GameSettings.WIDTH, GameSettings.HEIGHT);
+        stage.setScene(scene);
+        Platform.runLater(mapSelect::requestFocus);
+    }
+
+    public void showWeaponSelect(String mapResource) {
+        selectedMapResource = mapResource;
+        WeaponSelectPanel weaponSelect = new WeaponSelectPanel(this::startGame, this::showMapSelect);
         Scene scene = new Scene(weaponSelect, GameSettings.WIDTH, GameSettings.HEIGHT);
         stage.setScene(scene);
         Platform.runLater(weaponSelect::requestFocus);
@@ -38,9 +48,10 @@ public class GameMain extends Application {
 
     public void startGame(Gun p1Weapon, Gun p2Weapon) {
         GamePanel gamePanel = new GamePanel(
+                selectedMapResource,
                 p1Weapon,
                 p2Weapon,
-                this::showWeaponSelect,
+                () -> showWeaponSelect(selectedMapResource),
                 this::showMenu
         );
         Scene gameScene = new Scene(gamePanel, GameSettings.WIDTH, GameSettings.HEIGHT);
