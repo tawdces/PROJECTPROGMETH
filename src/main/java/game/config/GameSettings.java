@@ -41,6 +41,13 @@ public final class GameSettings {
     public static final long SCREEN_SHAKE_DURATION_MS = 120;
     public static final double SCREEN_SHAKE_STRENGTH = 10.0;
 
+    public static final double BARREL_SIZE = 36.0;
+    public static final double EXPLOSION_RADIUS = 200.0;
+    public static final double EXPLOSION_FORCE_BASE = 1400.0;
+    public static final double EXPLOSION_VERTICAL_FORCE = -450.0;
+
+    public static final long TRAP_DROP_INTERVAL_MS = 8_000;
+    
     private GameSettings() {
     }
 }

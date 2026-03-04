@@ -34,7 +34,7 @@ public class MenuPanel extends VBox {
         controls.setTextFill(Color.web("#b8d3f5"));
         controls.setFont(Font.font("Consolas", FontWeight.NORMAL, 14));
 
-        SoundManager.getInstance().playMenuBgm(); // เริ่มเล่นเพลงหน้าเมนู
+        SoundManager.getInstance().playMenuBgm(); 
 
         Button start = new Button("START");
         start.setPrefWidth(220);

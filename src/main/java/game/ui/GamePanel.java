@@ -9,11 +9,15 @@ import game.entities.Bullet;
 import game.entities.Player;
 import game.entities.PlayerOne;
 import game.entities.PlayerTwo;
+import game.entities.traps.ExplosiveBarrel;
+import game.entities.traps.Landmine;
+import game.entities.traps.Trap;
 import game.entities.weapons.Gun;
 import game.entities.weapons.GunRegistry;
 import javafx.animation.AnimationTimer;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -60,6 +64,7 @@ public class GamePanel extends StackPane {
     private final Image selectedMapImage;
     private final Image bulletHitImage = loadTransparentImage("/Bullet_hit.png");
     private final Image bloodImage = loadTransparentImage("/Blood.png");
+    private final Image explosionImage = loadTransparentImage("/explosion.png");
 
     private static final double MAP_SOURCE_WIDTH = 598.0;
     private static final double MAP_SOURCE_HEIGHT = 348.0;
@@ -69,6 +74,7 @@ public class GamePanel extends StackPane {
 
     private final List<Bullet> bullets = new ArrayList<>();
     private final List<WeaponDrop> weaponDrops = new ArrayList<>();
+    private final List<Trap> traps = new ArrayList<>(); 
     private final List<HitEffect> hitEffects = new ArrayList<>();
     private final List<PlatformSurface> worldSurfaces;
     private final Set<KeyCode> pressedKeys = new HashSet<>();
@@ -88,6 +94,7 @@ public class GamePanel extends StackPane {
     private double cameraY;
     private double cameraZoom = CAMERA_MIN_ZOOM;
     private long nextGunDropAtMillis = System.currentTimeMillis() + GameSettings.FIRST_DROP_DELAY_MS;
+    private long nextTrapDropAtMillis;
     private long freezeUntilMillis;
     private long pendingNextRoundAtMillis;
     private String centerBannerText = "";
@@ -126,7 +133,7 @@ public class GamePanel extends StackPane {
         setupPauseUi();
         prepareRound(1);
 
-        SoundManager.getInstance().playRandomBgm(); // เริ่มเล่นเพลงประกอบ
+        SoundManager.getInstance().playRandomBgm(); 
 
         gameLoop.start();
     }
@@ -136,6 +143,7 @@ public class GamePanel extends StackPane {
             pressedKeys.add(event.getCode());
 
             if (event.getCode() == KeyCode.ESCAPE) {
+                SoundManager.getInstance().playEffect("click");
                 togglePause();
                 return;
             }
@@ -194,6 +202,7 @@ public class GamePanel extends StackPane {
         updatables.add(p1);
         updatables.add(p2);
         updatables.addAll(bullets);
+        updatables.addAll(traps); 
         for (Updatable updatable : updatables) {
             updatable.update(deltaSeconds);
         }
@@ -201,11 +210,15 @@ public class GamePanel extends StackPane {
         p1.resolveCollisions(worldSurfaces, now);
         p2.resolveCollisions(worldSurfaces, now);
         removeExpiredEffects(now);
+        
         bullets.removeIf(bullet -> !bullet.isActive());
+        traps.removeIf(trap -> !trap.isActive());
 
         if (!isCombatLocked(now)) {
+            checkLandmineTriggers(now);
             handleBulletHits(now);
             updateWeaponDrops(now);
+            updateTrapDrops(now);
             handleWeaponPickups(now);
             handleBlastZoneDeaths(now);
         }
@@ -228,6 +241,19 @@ public class GamePanel extends StackPane {
         return positive ? 1.0 : -1.0;
     }
 
+    private void checkLandmineTriggers(long now) {
+        for (Trap trap : traps) {
+            if (!trap.isActive() || !(trap instanceof Landmine)) continue;
+            
+            boolean p1Step = trap.getBounds().intersects(p1.getBounds()) && !p1.isInvulnerable(now);
+            boolean p2Step = trap.getBounds().intersects(p2.getBounds()) && !p2.isInvulnerable(now);
+            
+            if (p1Step || p2Step) {
+                triggerExplosion(trap, now);
+            }
+        }
+    }
+
     private void performAction(Player attacker, Player defender) {
         long now = System.currentTimeMillis();
         if (!attacker.canAction(now)) {
@@ -238,7 +264,7 @@ public class GamePanel extends StackPane {
             List<Bullet> fired = attacker.shoot();
             bullets.addAll(fired);
             if (!fired.isEmpty()) {
-                SoundManager.getInstance().playEffect("shoot"); // เสียงยิงปืน
+                SoundManager.getInstance().playEffect("shoot"); 
                 double recoil = GameSettings.SHOOT_RECOIL_BASE
                         + Math.max(0, fired.size() - 1) * GameSettings.SHOOT_RECOIL_PER_BULLET;
                 attacker.applyKnockback(-attacker.getFacingDirection() * recoil, GameSettings.SHOOT_RECOIL_VERTICAL_FORCE);
@@ -248,12 +274,25 @@ public class GamePanel extends StackPane {
             return;
         }
 
-        if (!defender.isInvulnerable(now) && attacker.isMeleeHit(defender)) {
-            SoundManager.getInstance().playEffect("melee"); // เสียงตีระยะประชิด
+        boolean attackHit = false;
+        Rectangle2D meleeHitbox = attacker.getMeleeHitbox();
+
+        for (Trap trap : traps) {
+            if (trap.isActive() && meleeHitbox.intersects(trap.getBounds())) {
+                SoundManager.getInstance().playEffect("melee");
+                triggerExplosion(trap, now);
+                attackHit = true;
+                break; 
+            }
+        }
+
+        if (!attackHit && !defender.isInvulnerable(now) && meleeHitbox.intersects(defender.getBounds())) {
+            SoundManager.getInstance().playEffect("melee"); 
             defender.applyKnockback(attacker.getFacingDirection() * GameSettings.MELEE_FORCE, GameSettings.MELEE_VERTICAL_FORCE);
-            addEffect(bloodImage, defender.getBounds().getMinX() + 10, defender.getBounds().getMinY() + 16, 20, 20, 180L);
+            addEffect("blood", bloodImage, defender.getBounds().getMinX() + 10, defender.getBounds().getMinY() + 16, 20, 20, 180L);
             triggerCameraShake(GameSettings.SCREEN_SHAKE_STRENGTH * 0.7, GameSettings.SCREEN_SHAKE_DURATION_MS);
         }
+        
         attacker.setActionCooldown(now, GameSettings.MELEE_COOLDOWN_MS);
     }
 
@@ -266,25 +305,33 @@ public class GamePanel extends StackPane {
             for (PlatformSurface surface : worldSurfaces) {
                 if (bullet.getBounds().intersects(surface.getBounds())) {
                     var bulletBounds = bullet.getBounds();
-                    addEffect(bulletHitImage, bulletBounds.getMinX(), bulletBounds.getMinY(), 18, 18, 120L);
+                    addEffect("hit", bulletHitImage, bulletBounds.getMinX(), bulletBounds.getMinY(), 18, 18, 120L);
                     bullet.deactivate();
                     break;
                 }
             }
-            if (!bullet.isActive()) {
-                continue;
+            if (!bullet.isActive()) continue;
+
+            for (Trap trap : traps) {
+                if (trap.isActive() && bullet.getBounds().intersects(trap.getBounds())) {
+                    bullet.deactivate();
+                    triggerExplosion(trap, now);
+                    break;
+                }
             }
+            if (!bullet.isActive()) continue;
 
             Player owner = bullet.getOwner();
             Player target = owner == p1 ? p2 : p1;
             if (bullet.getBounds().intersects(target.getBounds())) {
                 var bulletBounds = bullet.getBounds();
-                addEffect(bulletHitImage, bulletBounds.getMinX(), bulletBounds.getMinY(), 22, 22, 150L);
+                addEffect("hit", bulletHitImage, bulletBounds.getMinX(), bulletBounds.getMinY(), 22, 22, 150L);
                 if (!target.isInvulnerable(now)) {
-                    SoundManager.getInstance().playEffect("hit"); // เสียงโดนกระสุนปืน
+                    SoundManager.getInstance().playEffect("hit"); 
                     target.applyKnockback(bullet.getImpactForceX(), bullet.getImpactForceY());
                     var targetBounds = target.getBounds();
                     addEffect(
+                            "blood",
                             bloodImage,
                             targetBounds.getMinX() + Math.max(0.0, (targetBounds.getWidth() - 22.0) * 0.5),
                             targetBounds.getMinY() + Math.max(0.0, (targetBounds.getHeight() - 22.0) * 0.4),
@@ -296,6 +343,51 @@ public class GamePanel extends StackPane {
                 }
                 bullet.deactivate();
             }
+        }
+    }
+    
+    private void triggerExplosion(Trap trap, long now) {
+        trap.deactivate();
+        SoundManager.getInstance().playEffect("explosion"); 
+        
+        
+        double forceModifier = trap.getExplosionForceMultiplier();
+        triggerCameraShake(GameSettings.SCREEN_SHAKE_STRENGTH * 3.0 * forceModifier, (long)(350 * forceModifier));
+
+        double centerX = trap.getBounds().getMinX() + trap.getBounds().getWidth() * 0.5;
+        double centerY = trap.getBounds().getMinY() + trap.getBounds().getHeight() * 0.5;
+
+        
+        double effectSize = 180 * forceModifier;
+        addEffect("explosion", explosionImage, centerX - (effectSize/2), centerY - (effectSize/2), effectSize, effectSize, 300L);
+
+        
+        applyExplosionForce(p1, centerX, centerY, now, forceModifier);
+        applyExplosionForce(p2, centerX, centerY, now, forceModifier);
+    }
+    
+    private void applyExplosionForce(Player player, double ex, double ey, long now, double trapForceModifier) {
+        if (player.isInvulnerable(now)) return;
+
+        var b = player.getBounds();
+        double px = b.getMinX() + b.getWidth() * 0.5;
+        double py = b.getMinY() + b.getHeight() * 0.5;
+
+        double dx = px - ex;
+        double dy = py - ey;
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        
+        
+        double radius = 170.0 * Math.max(1.0, trapForceModifier * 0.8); 
+
+        if (dist < radius) {
+            double distanceMultiplier = 1.0 - (dist / radius);
+            
+            double forceX = (dx / dist) * 1250.0 * distanceMultiplier * trapForceModifier;
+            double forceY = (-750.0 * distanceMultiplier - 150.0) * trapForceModifier;
+
+            player.applyKnockback(forceX, forceY);
+            addEffect("blood", bloodImage, px - 15, py - 15, 30, 30, 250L);
         }
     }
 
@@ -340,11 +432,11 @@ public class GamePanel extends StackPane {
             return;
         }
 
-        // เล่นเสียงตอนตกตายเมื่อมีผู้เล่นหลุดขอบจอ
         SoundManager.getInstance().playEffect("die");
 
         bullets.clear();
         weaponDrops.clear();
+        traps.clear();
 
         if (p1Out && p2Out) {
             p1Stocks--;
@@ -446,13 +538,23 @@ public class GamePanel extends StackPane {
         renderables.add(p1);
         renderables.add(p2);
         renderables.addAll(bullets);
+        renderables.addAll(traps); 
         for (Renderable renderable : renderables) {
             renderable.render(gc);
         }
 
         renderWeaponDrops();
+
         for (HitEffect effect : hitEffects) {
-            gc.drawImage(effect.image, effect.x, effect.y, effect.width, effect.height);
+            if (effect.image != EMPTY_IMAGE) {
+                gc.drawImage(effect.image, effect.x, effect.y, effect.width, effect.height);
+            } else if ("explosion".equals(effect.type)) {
+                double t = Math.max(0, (double) (effect.expiresAt - now) / effect.totalLife);
+                gc.setFill(Color.web("#ff4400", t * 0.75));
+                gc.fillOval(effect.x, effect.y, effect.width, effect.height);
+                gc.setFill(Color.web("#ffcc00", t * 0.95));
+                gc.fillOval(effect.x + effect.width * 0.25, effect.y + effect.height * 0.25, effect.width * 0.5, effect.height * 0.5);
+            }
         }
         gc.restore();
 
@@ -653,6 +755,7 @@ public class GamePanel extends StackPane {
         restart.setPrefWidth(220);
         styleMenuButton(restart, "#3c8cff", "#1f5ec9");
         restart.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
             shutdownGameSystems();
             onRematch.run();
         });
@@ -661,6 +764,7 @@ public class GamePanel extends StackPane {
         backToMenu.setPrefWidth(220);
         styleMenuButton(backToMenu, "#3a4354", "#252d39");
         backToMenu.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
             shutdownGameSystems();
             onBackToMenu.run();
         });
@@ -710,17 +814,55 @@ public class GamePanel extends StackPane {
         bullets.clear();
         weaponDrops.clear();
         hitEffects.clear();
+        
+        traps.clear();
+        spawnTraps(); 
+        
         spawnRoundPlayers(now);
         freezeUntilMillis = now + GameSettings.ROUND_START_COUNTDOWN_MS;
         nextGunDropAtMillis = freezeUntilMillis + GameSettings.FIRST_DROP_DELAY_MS;
+        nextTrapDropAtMillis = freezeUntilMillis + GameSettings.TRAP_DROP_INTERVAL_MS;
         showCenterBanner("ROUND " + roundNumber, GameSettings.ROUND_START_COUNTDOWN_MS);
+    }
+    
+    private void spawnTraps() {
+        if (worldSurfaces.isEmpty()) return;
+
+        int numTraps = random.nextInt(3) + 1;
+        
+        List<PlatformSurface> candidates = worldSurfaces.stream()
+                .filter(s -> s.getBounds().getWidth() > 70.0)
+                .toList();
+
+        if (candidates.isEmpty()) return;
+
+        for (int i = 0; i < numTraps; i++) {
+            PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
+            var bounds = surface.getBounds();
+            double spawnMinX = bounds.getMinX() + 6.0;
+            double spawnMaxX = bounds.getMaxX() - 32.0 - 6.0;
+            
+            if (spawnMaxX > spawnMinX) {
+                double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
+                double spawnY = bounds.getMinY();
+                
+                if (random.nextBoolean()) {
+                    traps.add(new ExplosiveBarrel(spawnX, spawnY));
+                } else {
+                    traps.add(new Landmine(spawnX, spawnY));
+                }
+            }
+        }
     }
 
     private void setupPauseUi() {
         pauseButton.setFocusTraversable(false);
         pauseButton.setPrefWidth(100);
         styleMenuButton(pauseButton, "#4c5f80", "#2f3b53");
-        pauseButton.setOnAction(event -> togglePause());
+        pauseButton.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
+            togglePause();
+        });
         StackPane.setAlignment(pauseButton, Pos.TOP_RIGHT);
         StackPane.setMargin(pauseButton, new Insets(12, 12, 0, 0));
 
@@ -731,12 +873,16 @@ public class GamePanel extends StackPane {
         Button cont = new Button("Continue");
         cont.setPrefWidth(220);
         styleMenuButton(cont, "#3c8cff", "#1f5ec9");
-        cont.setOnAction(event -> setPaused(false));
+        cont.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
+            setPaused(false);
+        });
 
         Button restart = new Button("Restart Match");
         restart.setPrefWidth(220);
         styleMenuButton(restart, "#70839a", "#4d5f74");
         restart.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
             shutdownGameSystems();
             onRematch.run();
         });
@@ -745,6 +891,7 @@ public class GamePanel extends StackPane {
         menu.setPrefWidth(220);
         styleMenuButton(menu, "#3a4354", "#252d39");
         menu.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
             shutdownGameSystems();
             onBackToMenu.run();
         });
@@ -791,7 +938,7 @@ public class GamePanel extends StackPane {
 
     private void shutdownGameSystems() {
         gameLoop.stop();
-        SoundManager.getInstance().stopBgm(); // ปิด BGM เมื่อออกจากแมตช์
+        SoundManager.getInstance().stopBgm(); 
     }
 
     private List<PlatformSurface> createSurfacesForMap(String mapResourcePath) {
@@ -853,11 +1000,11 @@ public class GamePanel extends StackPane {
             }
             return transparent ? makeBackgroundTransparent(image) : image;
         }
-        throw new IllegalArgumentException("Image resource not found: " + resourcePath);
+        return EMPTY_IMAGE;
     }
 
     private static Image makeBackgroundTransparent(Image raw) {
-        if (raw == null || raw.isError()) {
+        if (raw == null || raw.isError() || raw == EMPTY_IMAGE) {
             return EMPTY_IMAGE;
         }
         int w = (int) Math.round(raw.getWidth());
@@ -899,8 +1046,8 @@ public class GamePanel extends StackPane {
         return Math.sqrt(dr * dr + dg * dg + db * db);
     }
 
-    private void addEffect(Image image, double x, double y, double width, double height, long lifeMillis) {
-        hitEffects.add(new HitEffect(image, x, y, width, height, System.currentTimeMillis() + lifeMillis));
+    private void addEffect(String type, Image image, double x, double y, double width, double height, long lifeMillis) {
+        hitEffects.add(new HitEffect(type, image, x, y, width, height, System.currentTimeMillis() + lifeMillis, lifeMillis));
     }
 
     private void removeExpiredEffects(long nowMillis) {
@@ -910,6 +1057,43 @@ public class GamePanel extends StackPane {
     private void triggerCameraShake(double strength, long durationMillis) {
         shakeStrength = Math.max(shakeStrength, strength);
         shakeUntilMillis = Math.max(shakeUntilMillis, System.currentTimeMillis() + durationMillis);
+    }
+
+    private void updateTrapDrops(long now) {
+        if (now < nextTrapDropAtMillis) {
+            return;
+        }
+        
+        if (traps.size() >= 3) {
+            nextTrapDropAtMillis = now + GameSettings.TRAP_DROP_INTERVAL_MS;
+            return;
+        }
+
+        if (worldSurfaces.isEmpty()) return;
+
+        List<PlatformSurface> candidates = worldSurfaces.stream()
+                .filter(s -> s.getBounds().getWidth() > 70.0)
+                .toList();
+
+        if (!candidates.isEmpty()) {
+            PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
+            var bounds = surface.getBounds();
+            double spawnMinX = bounds.getMinX() + 6.0;
+            double spawnMaxX = bounds.getMaxX() - 32.0 - 6.0;
+            
+            if (spawnMaxX > spawnMinX) {
+                double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
+                double spawnY = bounds.getMinY();
+                
+                if (random.nextBoolean()) {
+                    traps.add(new ExplosiveBarrel(spawnX, spawnY));
+                } else {
+                    traps.add(new Landmine(spawnX, spawnY));
+                }
+            }
+        }
+        
+        nextTrapDropAtMillis = now + GameSettings.TRAP_DROP_INTERVAL_MS;
     }
 
     private void updateWeaponDrops(long now) {
@@ -965,8 +1149,8 @@ public class GamePanel extends StackPane {
             return false;
         }
         player.equipGun(drop.gun(), nowMillis);
-        SoundManager.getInstance().playEffect("pickup"); // เล่นเสียงตอนเก็บไอเทม
-        addEffect(bulletHitImage, drop.x() + 4, drop.y() + 4, 24, 24, 160L);
+        SoundManager.getInstance().playEffect("pickup"); 
+        addEffect("pickup", bulletHitImage, drop.x() + 4, drop.y() + 4, 24, 24, 160L);
         return true;
     }
 
@@ -988,20 +1172,24 @@ public class GamePanel extends StackPane {
     }
 
     private static final class HitEffect {
+        private final String type;
         private final Image image;
         private final double x;
         private final double y;
         private final double width;
         private final double height;
         private final long expiresAt;
+        private final long totalLife; 
 
-        private HitEffect(Image image, double x, double y, double width, double height, long expiresAt) {
+        private HitEffect(String type, Image image, double x, double y, double width, double height, long expiresAt, long totalLife) {
+            this.type = type;
             this.image = image;
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
             this.expiresAt = expiresAt;
+            this.totalLife = totalLife;
         }
     }
 }
