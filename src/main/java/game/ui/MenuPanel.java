@@ -8,6 +8,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import game.core.SoundManager;
+
 
 public class MenuPanel extends VBox {
 
@@ -32,18 +34,25 @@ public class MenuPanel extends VBox {
         controls.setTextFill(Color.web("#b8d3f5"));
         controls.setFont(Font.font("Consolas", FontWeight.NORMAL, 14));
 
+        SoundManager.getInstance().playMenuBgm(); // เริ่มเล่นเพลงหน้าเมนู
+
         Button start = new Button("START");
         start.setPrefWidth(220);
         styleButton(start, "#3c8cff", "#1f5ec9");
-        start.setOnAction(event -> onStart.run());
+        start.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
+            onStart.run();
+        });
 
         Button exit = new Button("EXIT");
         exit.setPrefWidth(220);
         styleButton(exit, "#5a6577", "#3a4354");
-        exit.setOnAction(event -> onExit.run());
+        exit.setOnAction(event -> {
+            SoundManager.getInstance().playEffect("click");
+            onExit.run();
+        });
 
-        Label tip = new Label("First to " + GameSettings.ROUND_WINS_TO_MATCH + " rounds wins.");
-        tip.setTextFill(Color.web("#c7daf8"));
+        Label tip = new Label("First to " + GameSettings.ROUND_WINS_TO_MATCH + " rounds wins.");tip.setTextFill(Color.web("#c7daf8"));
         tip.setFont(Font.font("Consolas", FontWeight.NORMAL, 13));
 
         getChildren().addAll(title, subtitle, controls, start, exit, tip);

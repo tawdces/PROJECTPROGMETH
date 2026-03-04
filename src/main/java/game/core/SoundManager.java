@@ -29,7 +29,8 @@ public final class SoundManager {
         loadEffect("hit", "/hit.mp3");
         loadEffect("melee", "/melee.mp3");
         loadEffect("die", "/die.mp3"); // เพิ่มโหลดเสียงตอนตกตาย
-        loadEffect("pickup", "/pickup.mp3"); // เพิ่มโหลดเสียงตอนตกตาย
+        loadEffect("pickup", "/pickup.mp3");
+        loadEffect("click", "/click.mp3"); // เพิ่มเสียงคลิกปุ่ม
     }
 
     public static SoundManager getInstance() {
@@ -96,6 +97,35 @@ public final class SoundManager {
             }
         } catch (Exception e) {
             System.err.println("Failed to load BGM: " + resourcePath + " (" + e.getMessage() + ")");
+        }
+    }
+
+    public void playMenuBgm() {
+        stopBgm();
+        try {
+            String resourcePath = "/menu_bgm.mp3";
+            URL url = getClass().getResource(resourcePath);
+            String mediaUrl = null;
+            if (url != null) {
+                mediaUrl = url.toExternalForm();
+            } else {
+                Path fallback = Paths.get("src", "main", "resources", resourcePath.replaceFirst("^/", ""));
+                if (Files.exists(fallback)) {
+                    mediaUrl = fallback.toUri().toString();
+                }
+            }
+
+            if (mediaUrl != null) {
+                Media media = new Media(mediaUrl);
+                bgmPlayer = new MediaPlayer(media);
+                bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+                bgmPlayer.setVolume(0.40); // ปรับระดับความดังเพลงหน้าเมนู
+                bgmPlayer.play();
+            } else {
+                System.out.println("Warning: Menu BGM not found: " + resourcePath);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to load Menu BGM: (" + e.getMessage() + ")");
         }
     }
 
