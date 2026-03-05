@@ -49,9 +49,12 @@ import java.util.Random;
 import java.util.Set;
 
 public class GamePanel extends StackPane {
-    private static final double SKY_RESPAWN_Y_MIN = 24.0;
-    private static final double SKY_RESPAWN_Y_MAX = 160.0;
+    private static final double SKY_RESPAWN_Y_MIN = 260.0;
+    private static final double SKY_RESPAWN_Y_MAX = 430.0;
     private static final double SIDE_RESPAWN_MARGIN = 48.0;
+    private static final double RESPAWN_CENTER_SPREAD = 140.0;
+    private static final double RESPAWN_PAIR_OFFSET = 88.0;
+    private static final double RESPAWN_PAIR_JITTER = 24.0;
     private static final double MAP_RENDER_EXTEND_MARGIN = GameSettings.BLAST_ZONE_MARGIN + 24.0;
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
     private static final String SUNSET_MAP_RESOURCE = "/sunset/background.png";
@@ -520,8 +523,8 @@ public class GamePanel extends StackPane {
                 return;
             }
 
-            respawnPlayerFromSky(p1, now);
-            respawnPlayerFromSky(p2, now);
+            respawnPlayerFromSky(p1, now, -RESPAWN_PAIR_OFFSET, RESPAWN_PAIR_JITTER);
+            respawnPlayerFromSky(p2, now, RESPAWN_PAIR_OFFSET, RESPAWN_PAIR_JITTER);
             return;
         }
 
@@ -571,10 +574,7 @@ public class GamePanel extends StackPane {
     private boolean isOutOfMap(Player player) {
         var b = player.getBounds();
         double margin = GameSettings.BLAST_ZONE_MARGIN;
-        return b.getMinY() > GameSettings.HEIGHT + margin
-                || b.getMaxY() < -margin
-                || b.getMaxX() < -margin
-                || b.getMinX() > GameSettings.WIDTH + margin;
+        return b.getMinY() > GameSettings.HEIGHT + margin;
     }
 
     private void renderGame() {
@@ -875,16 +875,22 @@ public class GamePanel extends StackPane {
     }
 
     private void respawnPlayerFromSky(Player player, long nowMillis) {
+        respawnPlayerFromSky(player, nowMillis, 0.0, RESPAWN_CENTER_SPREAD);
+    }
+
+    private void respawnPlayerFromSky(Player player, long nowMillis, double centerOffsetX, double jitterRange) {
+        double centerSpawnX = ((GameSettings.WIDTH - GameSettings.PLAYER_WIDTH) * 0.5) + centerOffsetX;
+        double jitter = (random.nextDouble() * 2.0 - 1.0) * Math.max(0.0, jitterRange);
         double minX = SIDE_RESPAWN_MARGIN;
         double maxX = GameSettings.WIDTH - GameSettings.PLAYER_WIDTH - SIDE_RESPAWN_MARGIN;
-        double spawnX = minX + random.nextDouble() * Math.max(1.0, maxX - minX);
+        double spawnX = Math.max(minX, Math.min(maxX, centerSpawnX + jitter));
         double spawnY = -(SKY_RESPAWN_Y_MIN + random.nextDouble() * (SKY_RESPAWN_Y_MAX - SKY_RESPAWN_Y_MIN));
         player.respawnFromSky(spawnX, spawnY, nowMillis);
     }
 
     private void spawnRoundPlayers(long nowMillis) {
-        p1.respawnFromSky(sx(122), sy(98), nowMillis);
-        p2.respawnFromSky(sx(438), sy(98), nowMillis);
+        respawnPlayerFromSky(p1, nowMillis, -RESPAWN_PAIR_OFFSET, RESPAWN_PAIR_JITTER);
+        respawnPlayerFromSky(p2, nowMillis, RESPAWN_PAIR_OFFSET, RESPAWN_PAIR_JITTER);
     }
 
     private void prepareRound(int targetRoundNumber) {
