@@ -14,8 +14,10 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.Objects;
 
 public abstract class Player extends GameEntity {
 
@@ -70,9 +72,27 @@ public abstract class Player extends GameEntity {
         if (spriteResourcePath == null) {
             this.spriteSheet = null;
         } else {
-            Image raw = new Image(Objects.requireNonNull(Player.class.getResourceAsStream(spriteResourcePath)));
-            this.spriteSheet = raw;
+            this.spriteSheet = loadSprite(spriteResourcePath);
         }
+    }
+
+    private static Image loadSprite(String spriteResourcePath) {
+        var resourceStream = Player.class.getResourceAsStream(spriteResourcePath);
+        if (resourceStream != null) {
+            Image image = new Image(resourceStream);
+            if (!image.isError()) {
+                return image;
+            }
+        }
+
+        Path fallback = Paths.get("src", "main", "resources", spriteResourcePath.replaceFirst("^/", ""));
+        if (Files.exists(fallback)) {
+            Image image = new Image(fallback.toUri().toString(), false);
+            if (!image.isError()) {
+                return image;
+            }
+        }
+        return EMPTY_SPRITE;
     }
 
     public void setHorizontalInput(double horizontalInput) {

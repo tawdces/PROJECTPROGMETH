@@ -30,14 +30,14 @@ public final class SoundManager {
     private final List<String> bgmFiles = List.of("/sounds/backgrounds/Bg_music1.mp3", "/sounds/backgrounds/Bg_music2.mp3", "/sounds/backgrounds/Bg_music3.mp3", "/sounds/backgrounds/Bg_music4.mp3");
 
     private SoundManager() {
-        loadEffect("shoot", "/sounds/effects/shoot.mp3");
-        loadEffect("step", "/sounds/effects/step.mp3");
-        loadEffect("hit", "/sounds/effects/hit.mp3");
-        loadEffect("melee", "/sounds/effects/melee.mp3");
-        loadEffect("die", "/sounds/effects/die.mp3");
-        loadEffect("pickup", "/sounds/effects/pickup.mp3");
-        loadEffect("click", "/sounds/effects/click.mp3");
-        loadEffect("explosion", "/sounds/effects/explosion.mp3");
+        loadEffect("shoot", "/sounds/effects/Shoot.mp3");
+        loadEffect("step", "/sounds/effects/Step.mp3");
+        loadEffect("hit", "/sounds/effects/Hit.mp3");
+        loadEffect("melee", "/sounds/effects/Melee.mp3");
+        loadEffect("die", "/sounds/effects/Die.mp3");
+        loadEffect("pickup", "/sounds/effects/Pickup.mp3");
+        loadEffect("click", "/sounds/effects/Click.mp3");
+        loadEffect("explosion", "/sounds/effects/Explosion.mp3");
     }
 
     public static SoundManager getInstance() {

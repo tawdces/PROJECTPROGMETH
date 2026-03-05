@@ -54,9 +54,9 @@ public class GamePanel extends StackPane {
     private final Canvas canvas = new Canvas(GameSettings.WIDTH, GameSettings.HEIGHT);
     private final GraphicsContext gc = canvas.getGraphicsContext2D();
     private final GameMap selectedMap;
-    private final Image bulletHitImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/Bullet_hit.png");
-    private final Image bloodImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/Blood.png");
-    private final Image explosionImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/explosion.png");
+    private final Image bulletHitImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/images/effects/Bullet_hit.png");
+    private final Image bloodImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/images/effects/Blood.png");
+    private final Image explosionImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/images/effects/Explosion.png");
 
     private final PlayerOne p1;
     private final PlayerTwo p2;
@@ -125,15 +125,11 @@ public class GamePanel extends StackPane {
 
         p1 = new PlayerOne(
                 this.selectedMap.playerOneSpawnX(),
-                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT,
-                "/Player1.png",
-                List.of()
+                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT
         );
         p2 = new PlayerTwo(
                 this.selectedMap.playerTwoSpawnX(),
-                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT,
-                "/Player2.png",
-                List.of()
+                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT
         );
         p1.equipPermanentGun(p1Weapon);
         p2.equipPermanentGun(p2Weapon);

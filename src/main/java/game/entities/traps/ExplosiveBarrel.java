@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 
 public class ExplosiveBarrel extends Trap {
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
-    private static final Image BARREL_IMAGE = loadTransparentImage("/barrel.png");
+    private static final Image BARREL_IMAGE = loadTransparentImage("/images/traps/Barrel.png");
 
     public ExplosiveBarrel(double x, double y) {
 
