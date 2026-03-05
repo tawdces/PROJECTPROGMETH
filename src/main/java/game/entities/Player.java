@@ -71,7 +71,7 @@ public abstract class Player extends GameEntity {
             this.spriteSheet = null;
         } else {
             Image raw = new Image(Objects.requireNonNull(Player.class.getResourceAsStream(spriteResourcePath)));
-            this.spriteSheet = makeBackgroundTransparent(raw);
+            this.spriteSheet = raw;
         }
     }
 
@@ -217,44 +217,6 @@ public abstract class Player extends GameEntity {
             return new SpriteFrame(0, 0, spriteSheet.getWidth(), spriteSheet.getHeight());
         }
         return spriteFrames.get(0);
-    }
-
-    private Image makeBackgroundTransparent(Image image) {
-        if (image == null || image.isError()) {
-            return EMPTY_SPRITE;
-        }
-        int w = (int) Math.round(image.getWidth());
-        int h = (int) Math.round(image.getHeight());
-        if (w <= 0 || h <= 0) {
-            return EMPTY_SPRITE;
-        }
-
-        PixelReader reader = image.getPixelReader();
-        if (reader == null) {
-            return EMPTY_SPRITE;
-        }
-
-        WritableImage out = new WritableImage(w, h);
-        PixelWriter writer = out.getPixelWriter();
-        Color key = reader.getColor(0, 0);
-        for (int py = 0; py < h; py++) {
-            for (int px = 0; px < w; px++) {
-                Color c = reader.getColor(px, py);
-                double dr = c.getRed() - key.getRed();
-                double dg = c.getGreen() - key.getGreen();
-                double db = c.getBlue() - key.getBlue();
-                boolean transparentByKey = Math.sqrt(dr * dr + dg * dg + db * db) < 0.18;
-                boolean transparentByWhite = c.getOpacity() > 0.0
-                        && c.getBrightness() > 0.94
-                        && c.getSaturation() < 0.16;
-                if (transparentByKey || transparentByWhite) {
-                    writer.setColor(px, py, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0.0));
-                } else {
-                    writer.setColor(px, py, c);
-                }
-            }
-        }
-        return out;
     }
 
     public Rectangle2D getMeleeHitbox() {

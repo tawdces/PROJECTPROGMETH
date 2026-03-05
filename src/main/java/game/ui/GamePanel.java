@@ -153,8 +153,8 @@ public class GamePanel extends StackPane {
         this.sunsetPlatformImage = sunsetMap ? loadImage("/sunset/platform.png") : EMPTY_IMAGE;
         this.worldSurfaces = createSurfacesForMap(mapResourcePath);
 
-        p1 = new PlayerOne(sx(100), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player.png", List.of());
-        p2 = new PlayerTwo(sx(500), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player.png", List.of());
+        p1 = new PlayerOne(sx(100), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player1.png", List.of());
+        p2 = new PlayerTwo(sx(500), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player2.png", List.of());
         p1.equipPermanentGun(p1Weapon);
         p2.equipPermanentGun(p2Weapon);
         registerTrackedPlayer(p1);
