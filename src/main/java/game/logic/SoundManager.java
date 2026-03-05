@@ -34,9 +34,9 @@ public final class SoundManager {
         loadEffect("step", "/step.mp3");
         loadEffect("hit", "/hit.mp3");
         loadEffect("melee", "/melee.mp3");
-        loadEffect("die", "/die.mp3"); 
+        loadEffect("die", "/die.mp3");
         loadEffect("pickup", "/pickup.mp3");
-        loadEffect("click", "/click.mp3"); 
+        loadEffect("click", "/click.mp3");
         loadEffect("explosion", "/explosion.mp3");
     }
 
@@ -93,7 +93,7 @@ public final class SoundManager {
             if (mediaUrl != null) {
                 Media media = new Media(mediaUrl);
                 bgmPlayer = new MediaPlayer(media);
-                bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE); 
+                bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
                 currentBgmBaseVolume = GAME_BGM_BASE_VOLUME;
                 applyBgmVolume();
                 bgmPlayer.play();
@@ -104,7 +104,7 @@ public final class SoundManager {
             System.err.println("Failed to load BGM: " + resourcePath + " (" + e.getMessage() + ")");
         }
     }
-    
+
     public void playMenuBgm() {
         stopBgm();
         try {

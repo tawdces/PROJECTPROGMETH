@@ -1,26 +1,21 @@
 package game.ui;
 
 import game.config.GameSettings;
-import game.map.GameMap;
-import game.map.PlatformSurface;
-import game.logic.Renderable;
-import game.logic.SharedMultiplayerCamera;
-import game.logic.SoundManager;
-import game.logic.Updatable;
 import game.entities.Bullet;
 import game.entities.Player;
 import game.entities.PlayerOne;
 import game.entities.PlayerTwo;
 import game.entities.powerups.PowerUp;
-import game.entities.powerups.ShieldPowerUp;
-import game.entities.powerups.SpeedPowerUp;
-import game.entities.traps.ExplosiveBarrel;
 import game.entities.traps.Landmine;
 import game.entities.traps.Trap;
 import game.entities.weapons.Gun;
-import game.entities.weapons.GunRegistry;
+import game.logic.Renderable;
+import game.logic.SharedMultiplayerCamera;
+import game.logic.SoundManager;
+import game.logic.Updatable;
+import game.map.GameMap;
+import game.map.PlatformSurface;
 import javafx.animation.AnimationTimer;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
@@ -28,32 +23,21 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
-import javafx.scene.image.PixelReader;
-import javafx.scene.image.PixelWriter;
-import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
 public class GamePanel extends StackPane {
-    private static final double VOLUME_PERCENT_MIN = 0.0;
-    private static final double VOLUME_PERCENT_MAX = 100.0;
     private static final double SKY_RESPAWN_Y_MIN = 260.0;
     private static final double SKY_RESPAWN_Y_MAX = 430.0;
     private static final double SIDE_RESPAWN_MARGIN = 48.0;
@@ -61,7 +45,7 @@ public class GamePanel extends StackPane {
     private static final double RESPAWN_PAIR_OFFSET = 88.0;
     private static final double RESPAWN_PAIR_JITTER = 24.0;
     private static final double MAP_RENDER_EXTEND_MARGIN = GameSettings.BLAST_ZONE_MARGIN + 24.0;
-    private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
+    private static final Image EMPTY_IMAGE = GameImageLoader.emptyImage();
     private static final boolean SHOW_PLATFORM_GUIDES = false;
 
     private final Runnable onRematch;
@@ -70,18 +54,19 @@ public class GamePanel extends StackPane {
     private final Canvas canvas = new Canvas(GameSettings.WIDTH, GameSettings.HEIGHT);
     private final GraphicsContext gc = canvas.getGraphicsContext2D();
     private final GameMap selectedMap;
-    private final Image bulletHitImage = loadTransparentImage("/Bullet_hit.png");
-    private final Image bloodImage = loadTransparentImage("/Blood.png");
-    private final Image explosionImage = loadTransparentImage("/explosion.png");
+    private final Image bulletHitImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/Bullet_hit.png");
+    private final Image bloodImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/Blood.png");
+    private final Image explosionImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/explosion.png");
 
     private final PlayerOne p1;
     private final PlayerTwo p2;
 
     private final List<Bullet> bullets = new ArrayList<>();
-    private final List<WeaponDrop> weaponDrops = new ArrayList<>();
-    private final List<Trap> traps = new ArrayList<>(); 
-    private final List<PowerUp> powerUps = new ArrayList<>(); 
-    private final List<HitEffect> hitEffects = new ArrayList<>();
+    private final MatchDropCoordinator dropCoordinator;
+    private final List<WeaponDrop> weaponDrops;
+    private final List<Trap> traps;
+    private final List<PowerUp> powerUps;
+    private final List<GameEffect> hitEffects = new ArrayList<>();
     private final List<PlatformSurface> worldSurfaces;
     private final SharedMultiplayerCamera sharedCamera;
     private final List<Player> trackedPlayers = new ArrayList<>(4);
@@ -92,8 +77,7 @@ public class GamePanel extends StackPane {
     private long p1DropBufferedUntilMillis;
     private long p2DropBufferedUntilMillis;
     private final Random random = new Random();
-    private final Button pauseButton = new Button("Pause");
-    private VBox pauseModal;
+    private final PauseOverlay pauseOverlay;
 
     private boolean gameOver;
     private boolean paused;
@@ -106,12 +90,7 @@ public class GamePanel extends StackPane {
     private double cameraX;
     private double cameraY;
     private double cameraZoom = GameSettings.CAMERA_MIN_ZOOM;
-    
-    
-    private long nextGunDropAtMillis;
-    private long nextTrapDropAtMillis;
-    private long nextPowerUpDropAtMillis;
-    
+
     private long freezeUntilMillis;
     private long pendingNextRoundAtMillis;
     private String centerBannerText = "";
@@ -139,6 +118,10 @@ public class GamePanel extends StackPane {
         this.onBackToMenu = onBackToMenu;
         this.selectedMap = selectedMap == null ? GameMap.defaultMap() : selectedMap;
         this.worldSurfaces = this.selectedMap.surfaces();
+        this.dropCoordinator = new MatchDropCoordinator(this.worldSurfaces, random);
+        this.weaponDrops = dropCoordinator.weaponDrops();
+        this.traps = dropCoordinator.traps();
+        this.powerUps = dropCoordinator.powerUps();
 
         p1 = new PlayerOne(
                 this.selectedMap.playerOneSpawnX(),
@@ -175,11 +158,17 @@ public class GamePanel extends StackPane {
 
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         getChildren().add(canvas);
-        setupPauseUi();
+        pauseOverlay = new PauseOverlay(
+                this,
+                this::togglePause,
+                () -> setPaused(false),
+                this::restartMatch,
+                this::backToMenu
+        );
         prepareRound(1);
         updateCamera(0.0);
 
-        SoundManager.getInstance().playRandomBgm(); 
+        SoundManager.getInstance().playRandomBgm();
 
         gameLoop.start();
     }
@@ -259,7 +248,7 @@ public class GamePanel extends StackPane {
         p1.resolveCollisions(worldSurfaces, now);
         p2.resolveCollisions(worldSurfaces, now);
         removeExpiredEffects(now);
-        
+
         bullets.removeIf(bullet -> !bullet.isActive());
         traps.removeIf(trap -> !trap.isActive());
         powerUps.removeIf(p -> !p.isActive());
@@ -267,9 +256,7 @@ public class GamePanel extends StackPane {
         if (!combatLocked) {
             checkLandmineTriggers(now);
             handleBulletHits(now);
-            updateWeaponDrops(now);
-            updateTrapDrops(now);
-            updatePowerUpDrops(now);
+            dropCoordinator.updateDrops(now);
             handleWeaponPickups(now);
             handlePowerUpPickups(now);
             handleBlastZoneDeaths(now);
@@ -335,10 +322,10 @@ public class GamePanel extends StackPane {
     private void checkLandmineTriggers(long now) {
         for (Trap trap : traps) {
             if (!trap.isActive() || !(trap instanceof Landmine)) continue;
-            
+
             boolean p1Step = trap.getBounds().intersects(p1.getBounds()) && !p1.isInvulnerable(now);
             boolean p2Step = trap.getBounds().intersects(p2.getBounds()) && !p2.isInvulnerable(now);
-            
+
             if (p1Step || p2Step) {
                 triggerExplosion(trap, now);
             }
@@ -355,7 +342,7 @@ public class GamePanel extends StackPane {
             List<Bullet> fired = attacker.shoot();
             bullets.addAll(fired);
             if (!fired.isEmpty()) {
-                SoundManager.getInstance().playEffect("shoot"); 
+                SoundManager.getInstance().playEffect("shoot");
                 double recoil = GameSettings.SHOOT_RECOIL_BASE
                         + Math.max(0, fired.size() - 1) * GameSettings.SHOOT_RECOIL_PER_BULLET;
                 attacker.applyKnockback(-attacker.getFacingDirection() * recoil, GameSettings.SHOOT_RECOIL_VERTICAL_FORCE);
@@ -373,17 +360,17 @@ public class GamePanel extends StackPane {
                 SoundManager.getInstance().playEffect("melee");
                 triggerExplosion(trap, now);
                 attackHit = true;
-                break; 
+                break;
             }
         }
 
         if (!attackHit && !defender.isInvulnerable(now) && meleeHitbox.intersects(defender.getBounds())) {
-            SoundManager.getInstance().playEffect("melee"); 
+            SoundManager.getInstance().playEffect("melee");
             defender.applyKnockback(attacker.getFacingDirection() * GameSettings.MELEE_FORCE, GameSettings.MELEE_VERTICAL_FORCE);
             addEffect("blood", bloodImage, defender.getBounds().getMinX() + 10, defender.getBounds().getMinY() + 16, 20, 20, 180L);
             triggerCameraShake(GameSettings.SCREEN_SHAKE_STRENGTH * 0.7, GameSettings.SCREEN_SHAKE_DURATION_MS);
         }
-        
+
         attacker.setActionCooldown(now, GameSettings.MELEE_COOLDOWN_MS);
     }
 
@@ -416,7 +403,7 @@ public class GamePanel extends StackPane {
                 var bulletBounds = bullet.getBounds();
                 addEffect("hit", bulletHitImage, bulletBounds.getMinX(), bulletBounds.getMinY(), 22, 22, 150L);
                 if (!target.isInvulnerable(now)) {
-                    SoundManager.getInstance().playEffect("hit"); 
+                    SoundManager.getInstance().playEffect("hit");
                     target.applyKnockback(bullet.getImpactForceX(), bullet.getImpactForceY());
                     var targetBounds = target.getBounds();
                     addEffect(
@@ -434,11 +421,11 @@ public class GamePanel extends StackPane {
             }
         }
     }
-    
+
     private void triggerExplosion(Trap trap, long now) {
         trap.deactivate();
-        SoundManager.getInstance().playEffect("explosion"); 
-        
+        SoundManager.getInstance().playEffect("explosion");
+
         double forceModifier = trap.getExplosionForceMultiplier();
         triggerCameraShake(GameSettings.SCREEN_SHAKE_STRENGTH * 3.0 * forceModifier, (long)(350 * forceModifier));
 
@@ -451,7 +438,7 @@ public class GamePanel extends StackPane {
         applyExplosionForce(p1, centerX, centerY, now, forceModifier);
         applyExplosionForce(p2, centerX, centerY, now, forceModifier);
     }
-    
+
     private void applyExplosionForce(Player player, double ex, double ey, long now, double trapForceModifier) {
         if (player.isInvulnerable(now)) return;
 
@@ -462,12 +449,12 @@ public class GamePanel extends StackPane {
         double dx = px - ex;
         double dy = py - ey;
         double dist = Math.sqrt(dx * dx + dy * dy);
-        
-        double radius = 170.0 * Math.max(1.0, trapForceModifier * 0.8); 
+        double radius = 170.0 * Math.max(1.0, trapForceModifier * 0.8);
 
         if (dist < radius) {
             double distanceMultiplier = 1.0 - (dist / radius);
-            double forceX = (dx / dist) * 1250.0 * distanceMultiplier * trapForceModifier;
+            double normalizedX = dist > 0.0001 ? (dx / dist) : 0.0;
+            double forceX = normalizedX * 1250.0 * distanceMultiplier * trapForceModifier;
             double forceY = (-750.0 * distanceMultiplier - 150.0) * trapForceModifier;
 
             player.applyKnockback(forceX, forceY);
@@ -493,9 +480,7 @@ public class GamePanel extends StackPane {
         SoundManager.getInstance().playEffect("die");
 
         bullets.clear();
-        weaponDrops.clear();
-        traps.clear();
-        powerUps.clear();
+        dropCoordinator.clearRoundItems();
 
         if (p1Out && p2Out) {
             p1Stocks--;
@@ -601,18 +586,23 @@ public class GamePanel extends StackPane {
             renderable.render(gc);
         }
 
-        renderWeaponDrops();
+        dropCoordinator.renderWeaponDrops(gc);
         for (PowerUp p : powerUps) p.render(gc);
 
-        for (HitEffect effect : hitEffects) {
-            if (effect.image != EMPTY_IMAGE) {
-                gc.drawImage(effect.image, effect.x, effect.y, effect.width, effect.height);
-            } else if ("explosion".equals(effect.type)) {
-                double t = Math.max(0, (double) (effect.expiresAt - now) / effect.totalLife);
+        for (GameEffect effect : hitEffects) {
+            if (effect.image() != EMPTY_IMAGE) {
+                gc.drawImage(effect.image(), effect.x(), effect.y(), effect.width(), effect.height());
+            } else if ("explosion".equals(effect.type())) {
+                double t = Math.max(0, (double) (effect.expiresAt() - now) / effect.totalLife());
                 gc.setFill(Color.web("#ff4400", t * 0.75));
-                gc.fillOval(effect.x, effect.y, effect.width, effect.height);
+                gc.fillOval(effect.x(), effect.y(), effect.width(), effect.height());
                 gc.setFill(Color.web("#ffcc00", t * 0.95));
-                gc.fillOval(effect.x + effect.width * 0.25, effect.y + effect.height * 0.25, effect.width * 0.5, effect.height * 0.5);
+                gc.fillOval(
+                        effect.x() + effect.width() * 0.25,
+                        effect.y() + effect.height() * 0.25,
+                        effect.width() * 0.5,
+                        effect.height() * 0.5
+                );
             }
         }
         gc.restore();
@@ -696,7 +686,7 @@ public class GamePanel extends StackPane {
         gc.fillText("ROUND " + roundNumber, centerX + 18, 34);
         gc.setFill(Color.WHITE);
         gc.setFont(Font.font("Consolas", FontWeight.BOLD, 15));
-        long secondsToDrop = Math.max(0L, (nextGunDropAtMillis - now + 999) / 1000);
+        long secondsToDrop = Math.max(0L, (dropCoordinator.nextGunDropAtMillis() - now + 999) / 1000);
         gc.fillText("Next Drop: " + secondsToDrop + "s", centerX + 18, 56);
         gc.fillText("Stock: " + GameSettings.STOCKS_PER_ROUND, centerX + 18, 74);
 
@@ -762,10 +752,7 @@ public class GamePanel extends StackPane {
         gameOver = true;
         paused = false;
         gameLoop.stop();
-        pauseButton.setVisible(false);
-        if (pauseModal != null) {
-            pauseModal.setVisible(false);
-        }
+        pauseOverlay.hideAll();
 
         Label title = new Label(winner + " Wins Match!");
         title.setTextFill(Color.WHITE);
@@ -780,8 +767,7 @@ public class GamePanel extends StackPane {
         styleMenuButton(restart, "#3c8cff", "#1f5ec9");
         restart.setOnAction(event -> {
             SoundManager.getInstance().playEffect("click");
-            shutdownGameSystems();
-            onRematch.run();
+            restartMatch();
         });
 
         Button backToMenu = new Button("Return to Menu");
@@ -789,8 +775,7 @@ public class GamePanel extends StackPane {
         styleMenuButton(backToMenu, "#3a4354", "#252d39");
         backToMenu.setOnAction(event -> {
             SoundManager.getInstance().playEffect("click");
-            shutdownGameSystems();
-            onBackToMenu.run();
+            backToMenu();
         });
 
         VBox modal = new VBox(12, title, score, restart, backToMenu);
@@ -826,143 +811,11 @@ public class GamePanel extends StackPane {
         p1Stocks = GameSettings.STOCKS_PER_ROUND;
         p2Stocks = GameSettings.STOCKS_PER_ROUND;
         bullets.clear();
-        weaponDrops.clear();
         hitEffects.clear();
-        powerUps.clear();
-        
-        traps.clear();
-        spawnTraps(); 
-        
-        spawnRoundPlayers(now);
         freezeUntilMillis = now + GameSettings.ROUND_START_COUNTDOWN_MS;
-        nextGunDropAtMillis = freezeUntilMillis + GameSettings.FIRST_DROP_DELAY_MS;
-        nextTrapDropAtMillis = freezeUntilMillis + GameSettings.TRAP_DROP_INTERVAL_MS;
-        nextPowerUpDropAtMillis = freezeUntilMillis + GameSettings.POWERUP_DROP_INTERVAL_MS; 
+        dropCoordinator.prepareRound(freezeUntilMillis);
+        spawnRoundPlayers(now);
         showCenterBanner("ROUND " + roundNumber, GameSettings.ROUND_START_COUNTDOWN_MS);
-    }
-    
-    private void spawnTraps() {
-        if (worldSurfaces.isEmpty()) return;
-
-        int numTraps = random.nextInt(3) + 1;
-        
-        List<PlatformSurface> candidates = worldSurfaces.stream()
-                .filter(s -> s.getBounds().getWidth() > 70.0)
-                .toList();
-
-        if (candidates.isEmpty()) return;
-
-        for (int i = 0; i < numTraps; i++) {
-            PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
-            var bounds = surface.getBounds();
-            double spawnMinX = bounds.getMinX() + 6.0;
-            double spawnMaxX = bounds.getMaxX() - 32.0 - 6.0;
-            
-            if (spawnMaxX > spawnMinX) {
-                double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
-                double spawnY = bounds.getMinY();
-                
-                if (random.nextBoolean()) {
-                    traps.add(new ExplosiveBarrel(spawnX, spawnY));
-                } else {
-                    traps.add(new Landmine(spawnX, spawnY));
-                }
-            }
-        }
-    }
-
-    private void setupPauseUi() {
-        SoundManager soundManager = SoundManager.getInstance();
-
-        pauseButton.setFocusTraversable(false);
-        pauseButton.setPrefWidth(100);
-        styleMenuButton(pauseButton, "#4c5f80", "#2f3b53");
-        pauseButton.setOnAction(event -> {
-            soundManager.playEffect("click");
-            togglePause();
-        });
-        StackPane.setAlignment(pauseButton, Pos.TOP_RIGHT);
-        StackPane.setMargin(pauseButton, new Insets(12, 12, 0, 0));
-
-        Label title = new Label("Paused");
-        title.setTextFill(Color.WHITE);
-        title.setFont(Font.font("Impact", FontWeight.NORMAL, 38));
-
-        Label musicVolumeLabel = new Label();
-        musicVolumeLabel.setId("pauseMusicVolumeLabel");
-        stylePauseAudioLabel(musicVolumeLabel);
-
-        Slider musicVolumeSlider = createPauseVolumeSlider(soundManager.getMusicVolume());
-        musicVolumeSlider.setId("pauseMusicVolumeSlider");
-        musicVolumeSlider.valueProperty().addListener((obs, oldValue, newValue) -> {
-            double volume = newValue.doubleValue() / 100.0;
-            soundManager.setMusicVolume(volume);
-            musicVolumeLabel.setText(volumeText("MUSIC", newValue.doubleValue()));
-        });
-        musicVolumeLabel.setText(volumeText("MUSIC", musicVolumeSlider.getValue()));
-
-        Label effectVolumeLabel = new Label();
-        effectVolumeLabel.setId("pauseEffectVolumeLabel");
-        stylePauseAudioLabel(effectVolumeLabel);
-
-        Slider effectVolumeSlider = createPauseVolumeSlider(soundManager.getEffectVolume());
-        effectVolumeSlider.setId("pauseEffectVolumeSlider");
-        effectVolumeSlider.valueProperty().addListener((obs, oldValue, newValue) -> {
-            double volume = newValue.doubleValue() / 100.0;
-            soundManager.setEffectVolume(volume);
-            effectVolumeLabel.setText(volumeText("EFFECT", newValue.doubleValue()));
-        });
-        effectVolumeSlider.setOnMouseReleased(event -> soundManager.playEffect("click"));
-        effectVolumeLabel.setText(volumeText("EFFECT", effectVolumeSlider.getValue()));
-
-        HBox musicRow = new HBox(12, musicVolumeLabel, musicVolumeSlider);
-        musicRow.setAlignment(Pos.CENTER);
-
-        HBox effectRow = new HBox(12, effectVolumeLabel, effectVolumeSlider);
-        effectRow.setAlignment(Pos.CENTER);
-
-        VBox audioControls = new VBox(8, musicRow, effectRow);
-        audioControls.setAlignment(Pos.CENTER);
-        audioControls.setStyle(
-                "-fx-background-color: rgba(255,255,255,0.08); "
-                        + "-fx-background-radius: 10; "
-                        + "-fx-padding: 10 12 10 12;"
-        );
-
-        Button cont = new Button("Continue");
-        cont.setPrefWidth(220);
-        styleMenuButton(cont, "#3c8cff", "#1f5ec9");
-        cont.setOnAction(event -> {
-            soundManager.playEffect("click");
-            setPaused(false);
-        });
-
-        Button restart = new Button("Restart Match");
-        restart.setPrefWidth(220);
-        styleMenuButton(restart, "#70839a", "#4d5f74");
-        restart.setOnAction(event -> {
-            soundManager.playEffect("click");
-            shutdownGameSystems();
-            onRematch.run();
-        });
-
-        Button menu = new Button("Return to Menu");
-        menu.setPrefWidth(220);
-        styleMenuButton(menu, "#3a4354", "#252d39");
-        menu.setOnAction(event -> {
-            soundManager.playEffect("click");
-            shutdownGameSystems();
-            onBackToMenu.run();
-        });
-
-        pauseModal = new VBox(14, title, audioControls, cont, restart, menu);
-        pauseModal.setAlignment(Pos.CENTER);
-        pauseModal.setVisible(false);
-        pauseModal.setMaxWidth(420);
-        pauseModal.setMaxHeight(360);
-        pauseModal.setStyle("-fx-background-color: rgba(0,0,0,0.84); -fx-padding: 24; -fx-background-radius: 14;");
-
-        getChildren().addAll(pauseModal, pauseButton);
     }
 
     private static void styleMenuButton(Button button, String top, String bottom) {
@@ -974,24 +827,6 @@ public class GamePanel extends StackPane {
                         + "-fx-background-radius: 10; "
                         + "-fx-padding: 8 16 8 16;"
         );
-    }
-
-    private static Slider createPauseVolumeSlider(double volume) {
-        Slider slider = new Slider(VOLUME_PERCENT_MIN, VOLUME_PERCENT_MAX, volume * 100.0);
-        slider.setFocusTraversable(false);
-        slider.setPrefWidth(220);
-        slider.setBlockIncrement(1.0);
-        return slider;
-    }
-
-    private static void stylePauseAudioLabel(Label label) {
-        label.setTextFill(Color.web("#ffe8a0"));
-        label.setFont(Font.font("Consolas", FontWeight.BOLD, 14));
-    }
-
-    private static String volumeText(String channel, double valuePercent) {
-        int percent = (int) Math.round(Math.max(VOLUME_PERCENT_MIN, Math.min(VOLUME_PERCENT_MAX, valuePercent)));
-        return channel + ": " + percent + "%";
     }
 
     private void togglePause() {
@@ -1008,91 +843,30 @@ public class GamePanel extends StackPane {
         } else {
             lastFrameNanos = 0L;
         }
-        if (pauseModal != null) {
-            pauseModal.setVisible(paused);
-        }
+        pauseOverlay.showPaused(paused);
     }
 
     private void shutdownGameSystems() {
         gameLoop.stop();
-        SoundManager.getInstance().stopBgm(); 
+        SoundManager.getInstance().stopBgm();
     }
 
-    private static Image loadTransparentImage(String resourcePath) {
-        return loadImageInternal(resourcePath, true);
+    private void restartMatch() {
+        shutdownGameSystems();
+        onRematch.run();
     }
 
-    private static Image loadImageInternal(String resourcePath, boolean transparent) {
-        Image image;
-        var url = GamePanel.class.getResource(resourcePath);
-        if (url != null) {
-            image = new Image(url.toExternalForm(), false);
-            if (image.isError()) {
-                return EMPTY_IMAGE;
-            }
-            return transparent ? makeBackgroundTransparent(image) : image;
-        }
-
-        Path fallback = Paths.get("src", "main", "resources", resourcePath.replaceFirst("^/", ""));
-        if (Files.exists(fallback)) {
-            image = new Image(fallback.toUri().toString(), false);
-            if (image.isError()) {
-                return EMPTY_IMAGE;
-            }
-            return transparent ? makeBackgroundTransparent(image) : image;
-        }
-        return EMPTY_IMAGE;
-    }
-
-    private static Image makeBackgroundTransparent(Image raw) {
-        if (raw == null || raw.isError() || raw == EMPTY_IMAGE) {
-            return EMPTY_IMAGE;
-        }
-        int w = (int) Math.round(raw.getWidth());
-        int h = (int) Math.round(raw.getHeight());
-        if (w <= 0 || h <= 0) {
-            return EMPTY_IMAGE;
-        }
-
-        PixelReader reader = raw.getPixelReader();
-        if (reader == null) {
-            return EMPTY_IMAGE;
-        }
-
-        WritableImage out = new WritableImage(w, h);
-        PixelWriter writer = out.getPixelWriter();
-        Color key = reader.getColor(0, 0);
-
-        for (int py = 0; py < h; py++) {
-            for (int px = 0; px < w; px++) {
-                Color c = reader.getColor(px, py);
-                boolean transparentByKey = colorDistance(c, key) < 0.18;
-                boolean transparentByWhite = c.getOpacity() > 0.0
-                        && c.getBrightness() > 0.94
-                        && c.getSaturation() < 0.16;
-                if (transparentByKey || transparentByWhite) {
-                    writer.setColor(px, py, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0.0));
-                } else {
-                    writer.setColor(px, py, c);
-                }
-            }
-        }
-        return out;
-    }
-
-    private static double colorDistance(Color a, Color b) {
-        double dr = a.getRed() - b.getRed();
-        double dg = a.getGreen() - b.getGreen();
-        double db = a.getBlue() - b.getBlue();
-        return Math.sqrt(dr * dr + dg * dg + db * db);
+    private void backToMenu() {
+        shutdownGameSystems();
+        onBackToMenu.run();
     }
 
     private void addEffect(String type, Image image, double x, double y, double width, double height, long lifeMillis) {
-        hitEffects.add(new HitEffect(type, image, x, y, width, height, System.currentTimeMillis() + lifeMillis, lifeMillis));
+        hitEffects.add(new GameEffect(type, image, x, y, width, height, System.currentTimeMillis() + lifeMillis, lifeMillis));
     }
 
     private void removeExpiredEffects(long nowMillis) {
-        hitEffects.removeIf(effect -> effect.expiresAt <= nowMillis);
+        hitEffects.removeIf(effect -> effect.isExpired(nowMillis));
     }
 
     private void triggerCameraShake(double strength, long durationMillis) {
@@ -1100,141 +874,26 @@ public class GamePanel extends StackPane {
         shakeUntilMillis = Math.max(shakeUntilMillis, System.currentTimeMillis() + durationMillis);
     }
 
-    
-    private void updatePowerUpDrops(long now) {
-        if (now < nextPowerUpDropAtMillis) {
-            return;
-        }
-        
-        if (powerUps.size() >= 2) { 
-            nextPowerUpDropAtMillis = now + GameSettings.POWERUP_DROP_INTERVAL_MS;
-            return;
-        }
-
-        if (worldSurfaces.isEmpty()) return;
-
-        List<PlatformSurface> candidates = worldSurfaces.stream()
-                .filter(s -> s.getBounds().getWidth() > 40.0)
-                .toList();
-
-        if (!candidates.isEmpty()) {
-            PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
-            var bounds = surface.getBounds();
-            double spawnMinX = bounds.getMinX() + 6.0;
-            double spawnMaxX = bounds.getMaxX() - 26.0 - 6.0;
-            
-            if (spawnMaxX > spawnMinX) {
-                double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
-                double spawnY = bounds.getMinY() - 28.0;
-                
-                
-                if (random.nextBoolean()) {
-                    powerUps.add(new ShieldPowerUp(spawnX, spawnY));
-                } else {
-                    powerUps.add(new SpeedPowerUp(spawnX, spawnY));
-                }
-            }
-        }
-        nextPowerUpDropAtMillis = now + GameSettings.POWERUP_DROP_INTERVAL_MS;
-    }
-
     private void handlePowerUpPickups(long nowMillis) {
         if (powerUps.isEmpty()) return;
-        
+
         powerUps.removeIf(p -> {
             boolean p1Pickup = p.getBounds().intersects(p1.getBounds());
             boolean p2Pickup = p.getBounds().intersects(p2.getBounds());
-            
+
             if (p1Pickup) {
                 p.applyEffect(p1, nowMillis);
-                SoundManager.getInstance().playEffect("pickup"); 
+                SoundManager.getInstance().playEffect("pickup");
                 addEffect("pickup", bulletHitImage, p.getBounds().getMinX(), p.getBounds().getMinY(), 24, 24, 160L);
                 return true;
             } else if (p2Pickup) {
                 p.applyEffect(p2, nowMillis);
-                SoundManager.getInstance().playEffect("pickup"); 
+                SoundManager.getInstance().playEffect("pickup");
                 addEffect("pickup", bulletHitImage, p.getBounds().getMinX(), p.getBounds().getMinY(), 24, 24, 160L);
                 return true;
             }
             return false;
         });
-    }
-
-    private void updateTrapDrops(long now) {
-        if (now < nextTrapDropAtMillis) {
-            return;
-        }
-        
-        if (traps.size() >= 3) {
-            nextTrapDropAtMillis = now + GameSettings.TRAP_DROP_INTERVAL_MS;
-            return;
-        }
-
-        if (worldSurfaces.isEmpty()) return;
-
-        List<PlatformSurface> candidates = worldSurfaces.stream()
-                .filter(s -> s.getBounds().getWidth() > 70.0)
-                .toList();
-
-        if (!candidates.isEmpty()) {
-            PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
-            var bounds = surface.getBounds();
-            double spawnMinX = bounds.getMinX() + 6.0;
-            double spawnMaxX = bounds.getMaxX() - 32.0 - 6.0;
-            
-            if (spawnMaxX > spawnMinX) {
-                double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
-                double spawnY = bounds.getMinY();
-                
-                if (random.nextBoolean()) {
-                    traps.add(new ExplosiveBarrel(spawnX, spawnY));
-                } else {
-                    traps.add(new Landmine(spawnX, spawnY));
-                }
-            }
-        }
-        nextTrapDropAtMillis = now + GameSettings.TRAP_DROP_INTERVAL_MS;
-    }
-
-    private void updateWeaponDrops(long now) {
-        if (now < nextGunDropAtMillis) {
-            return;
-        }
-        if (weaponDrops.size() >= 2) {
-            nextGunDropAtMillis = now + GameSettings.NEXT_DROP_INTERVAL_MS;
-            return;
-        }
-
-        WeaponDrop drop = createWeaponDrop();
-        if (drop != null) {
-            weaponDrops.add(drop);
-        }
-        nextGunDropAtMillis = now + GameSettings.NEXT_DROP_INTERVAL_MS;
-    }
-
-    private WeaponDrop createWeaponDrop() {
-        if (worldSurfaces.isEmpty()) {
-            return null;
-        }
-
-        List<PlatformSurface> candidates = worldSurfaces.stream()
-                .filter(surface -> surface.getBounds().getWidth() > GameSettings.BOX_SIZE + 20.0)
-                .sorted(Comparator.comparingDouble(surface -> surface.getBounds().getMinY()))
-                .toList();
-        if (candidates.isEmpty()) {
-            return null;
-        }
-
-        PlatformSurface selectedSurface = candidates.get(random.nextInt(candidates.size()));
-        var bounds = selectedSurface.getBounds();
-        double spawnMinX = bounds.getMinX() + 6.0;
-        double spawnMaxX = bounds.getMaxX() - GameSettings.BOX_SIZE - 6.0;
-        double spawnX = spawnMinX + random.nextDouble() * Math.max(1.0, spawnMaxX - spawnMinX);
-        double spawnY = bounds.getMinY() - GameSettings.BOX_SIZE - 2.0;
-
-        List<Gun> randomPool = GunRegistry.SELECTABLE_GUNS;
-        Gun gun = randomPool.get(random.nextInt(randomPool.size()));
-        return new WeaponDrop(spawnX, spawnY, gun);
     }
 
     private void handleWeaponPickups(long nowMillis) {
@@ -1249,47 +908,8 @@ public class GamePanel extends StackPane {
             return false;
         }
         player.equipGun(drop.gun(), nowMillis);
-        SoundManager.getInstance().playEffect("pickup"); 
+        SoundManager.getInstance().playEffect("pickup");
         addEffect("pickup", bulletHitImage, drop.x() + 4, drop.y() + 4, 24, 24, 160L);
         return true;
-    }
-
-    private void renderWeaponDrops() {
-        for (WeaponDrop drop : weaponDrops) {
-            gc.setFill(Color.web("#ffe69a"));
-            gc.fillRoundRect(drop.x(), drop.y(), GameSettings.BOX_SIZE, GameSettings.BOX_SIZE, 8, 8);
-            gc.setStroke(Color.web("#8f5f00"));
-            gc.setLineWidth(2.0);
-            gc.strokeRoundRect(drop.x(), drop.y(), GameSettings.BOX_SIZE, GameSettings.BOX_SIZE, 8, 8);
-            gc.drawImage(drop.gun().sprite(), drop.x() + 4, drop.y() + 9, GameSettings.BOX_SIZE - 8, 14);
-        }
-    }
-
-    private record WeaponDrop(double x, double y, Gun gun) {
-        private javafx.geometry.Rectangle2D bounds() {
-            return new javafx.geometry.Rectangle2D(x, y, GameSettings.BOX_SIZE, GameSettings.BOX_SIZE);
-        }
-    }
-
-    private static final class HitEffect {
-        private final String type;
-        private final Image image;
-        private final double x;
-        private final double y;
-        private final double width;
-        private final double height;
-        private final long expiresAt;
-        private final long totalLife; 
-
-        private HitEffect(String type, Image image, double x, double y, double width, double height, long expiresAt, long totalLife) {
-            this.type = type;
-            this.image = image;
-            this.x = x;
-            this.y = y;
-            this.width = width;
-            this.height = height;
-            this.expiresAt = expiresAt;
-            this.totalLife = totalLife;
-        }
     }
 }

@@ -60,7 +60,7 @@ public final class GameSettings {
 
     public static final long TRAP_DROP_INTERVAL_MS = 8_000;
     public static final long POWERUP_DROP_INTERVAL_MS = 20_000;
-    
+
     private GameSettings() {
     }
 }

@@ -43,8 +43,8 @@ public abstract class Player extends GameEntity {
     private Gun equippedGun = GunRegistry.UNARMED;
     private long nextActionAtMillis;
     private int airJumpsRemaining = GameSettings.MAX_AIR_JUMPS;
-    
-    
+
+
     private long invulnerableUntilMillis;
     private double currentSpeedMultiplier = 1.0;
     private long speedBoostUntilMillis;
@@ -108,12 +108,12 @@ public abstract class Player extends GameEntity {
         previousX = x;
         previousY = y;
 
-        
+
         if (nowMillis > speedBoostUntilMillis) {
             currentSpeedMultiplier = 1.0;
         }
 
-        
+
         double moveX = horizontalInput * (GameSettings.MOVE_SPEED * currentSpeedMultiplier) * deltaSeconds;
         x += moveX + (knockbackVX * deltaSeconds);
         y += velocityY * deltaSeconds;
@@ -128,7 +128,7 @@ public abstract class Player extends GameEntity {
                 stepDistance = 0.0;
             }
         } else if (!onGround) {
-            stepDistance = STEP_INTERVAL; 
+            stepDistance = STEP_INTERVAL;
         }
     }
 
@@ -137,8 +137,8 @@ public abstract class Player extends GameEntity {
         long nowMillis = System.currentTimeMillis();
         boolean invulnerable = isInvulnerable(nowMillis);
         boolean speedBoosted = isSpeedBoosted(nowMillis);
-        
-        
+
+
         boolean blink = invulnerable && ((nowMillis / 85L) % 2L == 0L);
 
         double drawX = x;
@@ -185,24 +185,24 @@ public abstract class Player extends GameEntity {
         }
         gc.restore();
 
-        
+
         if (invulnerable || speedBoosted) {
             gc.setLineWidth(2.5);
-            
+
             if (invulnerable && speedBoosted) {
-                gc.setStroke(Color.web("#9cffad", 0.90)); 
+                gc.setStroke(Color.web("#9cffad", 0.90));
             } else if (speedBoosted) {
-                gc.setStroke(Color.web("#ffeb6b", 0.90)); 
+                gc.setStroke(Color.web("#ffeb6b", 0.90));
             } else {
-                gc.setStroke(Color.web("#9ce8ff", 0.90)); 
+                gc.setStroke(Color.web("#9ce8ff", 0.90));
             }
-            
-            
+
+
             double offset = speedBoosted ? (Math.random() * 2 - 1) : 0;
             gc.strokeOval(drawX - 3 + offset, drawY - 4 + offset, drawWidth + 6, drawHeight + 8);
         }
 
-        
+
         gc.setFill(Color.color(0.06, 0.08, 0.10, 0.65));
         gc.fillRoundRect(drawX + 4, drawY - 19, 30, 14, 8, 8);
         gc.setFill(Color.WHITE);
@@ -236,9 +236,9 @@ public abstract class Player extends GameEntity {
         velocityY += forceY;
     }
 
-    
+
     public void applyShield(long durationMillis, long nowMillis) {
-        
+
         this.invulnerableUntilMillis = Math.max(this.invulnerableUntilMillis, nowMillis) + durationMillis;
     }
 
