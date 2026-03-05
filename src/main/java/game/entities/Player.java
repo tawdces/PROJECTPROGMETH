@@ -11,6 +11,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
+import javafx.scene.text.TextAlignment;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -203,11 +204,16 @@ public abstract class Player extends GameEntity {
             gc.strokeOval(drawX - 3 + offset, drawY - 4 + offset, drawWidth + 6, drawHeight + 8);
         }
 
-
+        
+        double nameTagWidth = 30.0;
+        double nameTagX = drawX + ((drawWidth - nameTagWidth) * 0.5);
         gc.setFill(Color.color(0.06, 0.08, 0.10, 0.65));
-        gc.fillRoundRect(drawX + 4, drawY - 19, 30, 14, 8, 8);
+        gc.fillRoundRect(nameTagX, drawY - 19, nameTagWidth, 14, 8, 8);
+        gc.save();
         gc.setFill(Color.WHITE);
-        gc.fillText(name, drawX + 9, drawY - 8);
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText(name, nameTagX + (nameTagWidth * 0.5), drawY - 8);
+        gc.restore();
     }
 
     private void drawPlayerBody(

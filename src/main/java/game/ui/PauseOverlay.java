@@ -16,6 +16,7 @@ import javafx.scene.text.FontWeight;
 final class PauseOverlay {
     private static final double VOLUME_PERCENT_MIN = 0.0;
     private static final double VOLUME_PERCENT_MAX = 100.0;
+    private static final double PAUSE_AUDIO_LABEL_WIDTH = 112.0;
 
     private final Button pauseButton = new Button("Pause");
     private final VBox pauseModal;
@@ -149,6 +150,10 @@ final class PauseOverlay {
     private static void stylePauseAudioLabel(Label label) {
         label.setTextFill(Color.web("#ffe8a0"));
         label.setFont(Font.font("Consolas", FontWeight.BOLD, 14));
+        label.setMinWidth(PAUSE_AUDIO_LABEL_WIDTH);
+        label.setPrefWidth(PAUSE_AUDIO_LABEL_WIDTH);
+        label.setMaxWidth(PAUSE_AUDIO_LABEL_WIDTH);
+        label.setAlignment(Pos.CENTER_RIGHT);
     }
 
     private static String volumeText(String channel, double valuePercent) {
