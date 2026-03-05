@@ -11,7 +11,6 @@ import javafx.scene.text.FontWeight;
 import game.core.SoundManager;
 
 public class MenuPanel extends VBox {
-
     public MenuPanel(Runnable onStart, Runnable onExit) {
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         setAlignment(Pos.CENTER);
@@ -73,14 +72,15 @@ public class MenuPanel extends VBox {
         
         textContainer.getChildren().addAll(title, subtitle, controls, tip);
 
-        SoundManager.getInstance().playMenuBgm(); 
+        SoundManager soundManager = SoundManager.getInstance();
+        soundManager.playMenuBgm();
 
         
         Button start = new Button("START");
         start.setPrefWidth(220);
         styleButton(start, "#3c8cff", "#1f5ec9");
         start.setOnAction(event -> {
-            SoundManager.getInstance().playEffect("click");
+            soundManager.playEffect("click");
             onStart.run();
         });
 
@@ -88,7 +88,7 @@ public class MenuPanel extends VBox {
         exit.setPrefWidth(220);
         styleButton(exit, "#5a6577", "#3a4354");
         exit.setOnAction(event -> {
-            SoundManager.getInstance().playEffect("click");
+            soundManager.playEffect("click");
             onExit.run();
         });
 
