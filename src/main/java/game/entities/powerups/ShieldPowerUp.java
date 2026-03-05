@@ -14,20 +14,20 @@ public class ShieldPowerUp extends PowerUp {
 
     @Override
     public void applyEffect(Player player, long nowMillis) {
-        
+
         player.applyShield(5000, nowMillis);
     }
 
     @Override
     public void render(GraphicsContext gc) {
-        
+
         gc.setFill(Color.web("#2288ff", 0.85));
         gc.fillRoundRect(x, y, width, height, 8, 8);
         gc.setStroke(Color.web("#88ccff"));
         gc.setLineWidth(2.0);
         gc.strokeRoundRect(x, y, width, height, 8, 8);
-        
-        
+
+
         gc.setFill(Color.WHITE);
         gc.setFont(Font.font("Impact", FontWeight.NORMAL, 18));
         gc.fillText("S", x + 7, y + 19);

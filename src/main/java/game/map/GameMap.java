@@ -12,8 +12,6 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public final class GameMap {
-    public static final String SUNSET_RESOURCE = "/sunset/background.png";
-    private static final String SUNSET_PREVIEW_RESOURCE = "/sunset/sunsetcityPreview.png";
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
 
     private static final double MAP_SOURCE_WIDTH = 598.0;
@@ -26,10 +24,10 @@ public final class GameMap {
     private static final double DEFAULT_SPAWN_GROUND_Y = classicY(214);
 
     private static final List<GameMap> AVAILABLE_MAPS = List.of(
-            new GameMap("/Map1.png", "/Map1.png", "Map 1", Color.web("#d9ecff"), false, map1Surfaces()),
-            new GameMap("/Map2.png", "/Map2.png", "Map 2", Color.web("#d9ecff"), false, map2Surfaces()),
-            new GameMap("/Map3.png", "/Map3.png", "Map 3", Color.web("#d9ecff"), false, map3Surfaces()),
-            new GameMap(SUNSET_RESOURCE, SUNSET_PREVIEW_RESOURCE, "Sunset", Color.web("#a97b74"), true, sunsetSurfaces())
+            new GameMap("/images/maps/Map1.png", "/images/maps/Map1.png", "Map 1", Color.web("#d9ecff"), false, map1Surfaces()),
+            new GameMap("/images/maps/Map2.png", "/images/maps/Map2.png", "Map 2", Color.web("#d9ecff"), false, map2Surfaces()),
+            new GameMap("/images/maps/Map3.png", "/images/maps/Map3.png", "Map 3", Color.web("#d9ecff"), false, map3Surfaces()),
+            new GameMap("/images/sunset/Background.png", "/images/maps/Map4.png", "Sunset", Color.web("#a97b74"), true, sunsetSurfaces())
     );
 
     private final String resourcePath;
@@ -176,13 +174,13 @@ public final class GameMap {
             }
             baseImage = loadImage(resourcePath);
             if (sunsetStyle) {
-                sunsetBackgroundImage = loadImage("/sunset/background.png");
-                sunsetSunImage = loadImage("/sunset/sun.png");
-                sunsetMountainImage = loadImage("/sunset/mountain.png");
-                sunsetCityFarImage = loadImage("/sunset/city3.png");
-                sunsetCityMidImage = loadImage("/sunset/city2.png");
-                sunsetCityNearImage = loadImage("/sunset/city1.png");
-                sunsetPlatformImage = loadImage("/sunset/platform.png");
+                sunsetBackgroundImage = loadImage("/images/sunset/Background.png");
+                sunsetSunImage = loadImage("/images/sunset/Sun.png");
+                sunsetMountainImage = loadImage("/images/sunset/Mountain.png");
+                sunsetCityFarImage = loadImage("/images/sunset/City3.png");
+                sunsetCityMidImage = loadImage("/images/sunset/City2.png");
+                sunsetCityNearImage = loadImage("/images/sunset/City1.png");
+                sunsetPlatformImage = loadImage("/images/sunset/Platform.png");
             }
             assetsLoaded = true;
         }

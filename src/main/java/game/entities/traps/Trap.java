@@ -10,9 +10,9 @@ public abstract class Trap extends GameEntity {
 
     @Override
     public void update(double deltaSeconds) {
-        
+
     }
 
-    
+
     public abstract double getExplosionForceMultiplier();
 }

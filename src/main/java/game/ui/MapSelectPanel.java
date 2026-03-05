@@ -11,7 +11,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.layout.HBox; 
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -27,7 +27,6 @@ public class MapSelectPanel extends VBox {
 
     public static int mapWidth = 540;
     public static int mapHeight = 300;
-    public static final String SUNSET_MAP_RESOURCE = GameMap.SUNSET_RESOURCE;
     private static final List<GameMap> MAPS = GameMap.availableMaps();
     public static final List<String> MAP_RESOURCES = MAPS.stream()
             .map(GameMap::resourcePath)
@@ -36,8 +35,8 @@ public class MapSelectPanel extends VBox {
     public MapSelectPanel(Consumer<GameMap> onMapSelected, Runnable onBackToMenu) {
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         setAlignment(Pos.CENTER);
-        
-        setSpacing(10); 
+
+        setSpacing(10);
         setStyle(
                 "-fx-background-color: linear-gradient(to bottom, #11192b 0%, #1f3048 50%, #102638 100%); "
                         + "-fx-padding: 20;"
@@ -45,7 +44,7 @@ public class MapSelectPanel extends VBox {
 
         Label title = new Label("SELECT ARENA");
         title.setTextFill(Color.web("#fff4af"));
-        title.setFont(Font.font("Impact", FontWeight.NORMAL, 45)); 
+        title.setFont(Font.font("Impact", FontWeight.NORMAL, 45));
 
         int[] index = {0};
         ImageView mapPreview = new ImageView(loadMap(index[0]));
@@ -59,7 +58,7 @@ public class MapSelectPanel extends VBox {
                 "-fx-background-color: rgba(0,0,0,0.36); "
                         + "-fx-border-color: rgba(255,225,117,0.88); "
                         + "-fx-border-width: 2; "
-                        + "-fx-padding: 8; " 
+                        + "-fx-padding: 8; "
                         + "-fx-background-radius: 10; "
                         + "-fx-border-radius: 10;"
         );
@@ -76,9 +75,9 @@ public class MapSelectPanel extends VBox {
         hint.setTextFill(Color.web("#d3e7ff"));
         hint.setFont(Font.font("Consolas", FontWeight.NORMAL, 14));
 
-        
+
         Button back = new Button("BACK");
-        back.setPrefWidth(220); 
+        back.setPrefWidth(220);
         styleButton(back, "#5a6577", "#3a4354");
         back.setOnAction(event -> {
             SoundManager.getInstance().playEffect("click");
@@ -86,18 +85,18 @@ public class MapSelectPanel extends VBox {
         });
 
         Button next = new Button("NEXT");
-        next.setPrefWidth(220); 
+        next.setPrefWidth(220);
         styleButton(next, "#3c8cff", "#1f5ec9");
         next.setOnAction(event -> {
             SoundManager.getInstance().playEffect("click");
             onMapSelected.accept(MAPS.get(index[0]));
         });
 
-        
-        HBox buttonLayout = new HBox(20); 
+
+        HBox buttonLayout = new HBox(20);
         buttonLayout.setAlignment(Pos.CENTER);
-        buttonLayout.getChildren().addAll(back, next); 
-        
+        buttonLayout.getChildren().addAll(back, next);
+
 
         setFocusTraversable(true);
         setOnKeyPressed(event -> {
@@ -122,7 +121,7 @@ public class MapSelectPanel extends VBox {
             }
         });
 
-        
+
         getChildren().addAll(title, previewFrame, mapName, page, hint, buttonLayout);
     }
 

@@ -15,16 +15,16 @@ import java.nio.file.Paths;
 
 public class ExplosiveBarrel extends Trap {
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
-    private static final Image BARREL_IMAGE = loadTransparentImage("/barrel.png");
+    private static final Image BARREL_IMAGE = loadTransparentImage("/images/traps/Barrel.png");
 
     public ExplosiveBarrel(double x, double y) {
-        
+
         super(x, y - 42.0, 32.0, 42.0);
     }
 
     @Override
     public double getExplosionForceMultiplier() {
-        
+
         return 1.0;
     }
 
@@ -80,7 +80,7 @@ public class ExplosiveBarrel extends Trap {
                     double db = c.getBlue() - key.getBlue();
                     boolean transparentByKey = Math.sqrt(dr * dr + dg * dg + db * db) < 0.18;
                     boolean transparentByWhite = c.getOpacity() > 0.0 && c.getBrightness() > 0.94 && c.getSaturation() < 0.16;
-                    
+
                     if (transparentByKey || transparentByWhite) {
                         writer.setColor(px, py, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0.0));
                     } else {

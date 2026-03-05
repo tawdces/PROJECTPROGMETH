@@ -14,14 +14,14 @@ public class MenuPanel extends VBox {
     public MenuPanel(Runnable onStart, Runnable onExit) {
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         setAlignment(Pos.CENTER);
-        
-        
-        setSpacing(30); 
-        
-        
+
+
+        setSpacing(30);
+
+
         String bgImagePath;
         try {
-            bgImagePath = getClass().getResource("/menu_bg.png").toExternalForm();
+            bgImagePath = getClass().getResource("/images/backgrounds/Menu_bg.png").toExternalForm();
             setStyle(
                     "-fx-background-image: url('" + bgImagePath + "'); "
                     + "-fx-background-size: cover; "
@@ -36,23 +36,23 @@ public class MenuPanel extends VBox {
             );
         }
 
-        
+
         VBox textContainer = new VBox();
         textContainer.setAlignment(Pos.CENTER);
-        textContainer.setSpacing(10); 
-        textContainer.setMaxWidth(GameSettings.WIDTH * 0.8); 
+        textContainer.setSpacing(10);
+        textContainer.setMaxWidth(GameSettings.WIDTH * 0.8);
 
-        
+
         textContainer.setStyle(
-                "-fx-background-color: rgba(0, 0, 0, 0.6); " + 
-                "-fx-background-radius: 20; " +                  
-                "-fx-padding: 40; " +                            
-                "-fx-border-color: rgba(255, 255, 255, 0.1); " + 
+                "-fx-background-color: rgba(0, 0, 0, 0.6); " +
+                "-fx-background-radius: 20; " +
+                "-fx-padding: 40; " +
+                "-fx-border-color: rgba(255, 255, 255, 0.1); " +
                 "-fx-border-radius: 20; " +
                 "-fx-border-width: 1;"
         );
 
-        
+
         Label title = new Label("GUN MAYHEM ARENA");
         title.setTextFill(Color.web("#fff4af"));
         title.setFont(Font.font("Impact", FontWeight.NORMAL, 56));
@@ -64,18 +64,18 @@ public class MenuPanel extends VBox {
         Label controls = new Label("P1: A/D + W + SPACE    |    P2: Arrows + UP + ENTER");
         controls.setTextFill(Color.web("#b8d3f5"));
         controls.setFont(Font.font("Consolas", FontWeight.NORMAL, 14));
-        
+
         Label tip = new Label("First to " + GameSettings.ROUND_WINS_TO_MATCH + " rounds wins.");
         tip.setTextFill(Color.web("#c7daf8"));
         tip.setFont(Font.font("Consolas", FontWeight.NORMAL, 13));
 
-        
+
         textContainer.getChildren().addAll(title, subtitle, controls, tip);
 
         SoundManager soundManager = SoundManager.getInstance();
         soundManager.playMenuBgm();
 
-        
+
         Button start = new Button("START");
         start.setPrefWidth(220);
         styleButton(start, "#3c8cff", "#1f5ec9");
@@ -92,8 +92,8 @@ public class MenuPanel extends VBox {
             onExit.run();
         });
 
-        
-        
+
+
         getChildren().addAll(textContainer, start, exit);
     }
 

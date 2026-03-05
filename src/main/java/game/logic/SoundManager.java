@@ -27,17 +27,17 @@ public final class SoundManager {
     private double effectVolume = 1.0;
     private double currentBgmBaseVolume = MENU_BGM_BASE_VOLUME;
 
-    private final List<String> bgmFiles = List.of("/bgm1.mp3", "/bgm2.mp3", "/bgm3.mp3", "/bgm4.mp3");
+    private final List<String> bgmFiles = List.of("/sounds/backgrounds/Bg_music1.mp3", "/sounds/backgrounds/Bg_music2.mp3", "/sounds/backgrounds/Bg_music3.mp3", "/sounds/backgrounds/Bg_music4.mp3");
 
     private SoundManager() {
-        loadEffect("shoot", "/shoot.mp3");
-        loadEffect("step", "/step.mp3");
-        loadEffect("hit", "/hit.mp3");
-        loadEffect("melee", "/melee.mp3");
-        loadEffect("die", "/die.mp3"); 
-        loadEffect("pickup", "/pickup.mp3");
-        loadEffect("click", "/click.mp3"); 
-        loadEffect("explosion", "/explosion.mp3");
+        loadEffect("shoot", "/sounds/effects/Shoot.mp3");
+        loadEffect("step", "/sounds/effects/Step.mp3");
+        loadEffect("hit", "/sounds/effects/Hit.mp3");
+        loadEffect("melee", "/sounds/effects/Melee.mp3");
+        loadEffect("die", "/sounds/effects/Die.mp3");
+        loadEffect("pickup", "/sounds/effects/Pickup.mp3");
+        loadEffect("click", "/sounds/effects/Click.mp3");
+        loadEffect("explosion", "/sounds/effects/Explosion.mp3");
     }
 
     public static SoundManager getInstance() {
@@ -93,7 +93,7 @@ public final class SoundManager {
             if (mediaUrl != null) {
                 Media media = new Media(mediaUrl);
                 bgmPlayer = new MediaPlayer(media);
-                bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE); 
+                bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
                 currentBgmBaseVolume = GAME_BGM_BASE_VOLUME;
                 applyBgmVolume();
                 bgmPlayer.play();
@@ -104,11 +104,11 @@ public final class SoundManager {
             System.err.println("Failed to load BGM: " + resourcePath + " (" + e.getMessage() + ")");
         }
     }
-    
+
     public void playMenuBgm() {
         stopBgm();
         try {
-            String resourcePath = "/menu_bgm.mp3";
+            String resourcePath = "/sounds/backgrounds/Menu_bg_music.mp3";
             URL url = getClass().getResource(resourcePath);
             String mediaUrl = null;
             if (url != null) {
