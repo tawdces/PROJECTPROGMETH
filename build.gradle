@@ -29,3 +29,7 @@ application {
 test {
     useJUnitPlatform()
 }
+
+javadoc {
+    options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PRIVATE
+}

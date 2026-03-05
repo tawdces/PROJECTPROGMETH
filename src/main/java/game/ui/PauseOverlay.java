@@ -14,11 +14,26 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
 final class PauseOverlay {
+    /**
+     * Internal constant for volume percent min.
+     */
     private static final double VOLUME_PERCENT_MIN = 0.0;
+    /**
+     * Internal constant for volume percent max.
+     */
     private static final double VOLUME_PERCENT_MAX = 100.0;
+    /**
+     * Internal constant for pause audio label width.
+     */
     private static final double PAUSE_AUDIO_LABEL_WIDTH = 112.0;
 
+    /**
+     * Internal state field for pause button.
+     */
     private final Button pauseButton = new Button("Pause");
+    /**
+     * Internal state field for pause modal.
+     */
     private final VBox pauseModal;
 
     PauseOverlay(
@@ -128,6 +143,13 @@ final class PauseOverlay {
         pauseModal.setVisible(false);
     }
 
+    /**
+     * Internal helper for style menu button.
+     *
+     * @param button parameter value
+     * @param top parameter value
+     * @param bottom parameter value
+     */
     private static void styleMenuButton(Button button, String top, String bottom) {
         button.setFocusTraversable(false);
         button.setTextFill(Color.WHITE);
@@ -139,6 +161,12 @@ final class PauseOverlay {
         );
     }
 
+    /**
+     * Creates pause volume slider for internal use.
+     *
+     * @param volume parameter value
+     * @return the resulting value
+     */
     private static Slider createPauseVolumeSlider(double volume) {
         Slider slider = new Slider(VOLUME_PERCENT_MIN, VOLUME_PERCENT_MAX, volume * 100.0);
         slider.setFocusTraversable(false);
@@ -147,6 +175,11 @@ final class PauseOverlay {
         return slider;
     }
 
+    /**
+     * Internal helper for style pause audio label.
+     *
+     * @param label parameter value
+     */
     private static void stylePauseAudioLabel(Label label) {
         label.setTextFill(Color.web("#ffe8a0"));
         label.setFont(Font.font("Consolas", FontWeight.BOLD, 14));
@@ -156,6 +189,13 @@ final class PauseOverlay {
         label.setAlignment(Pos.CENTER_RIGHT);
     }
 
+    /**
+     * Internal helper for volume text.
+     *
+     * @param channel parameter value
+     * @param valuePercent parameter value
+     * @return the resulting value
+     */
     private static String volumeText(String channel, double valuePercent) {
         int percent = (int) Math.round(Math.max(VOLUME_PERCENT_MIN, Math.min(VOLUME_PERCENT_MAX, valuePercent)));
         return channel + ": " + percent + "%";

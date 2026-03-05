@@ -11,29 +11,103 @@ import java.util.Collection;
  * follows the group's center while dynamically adjusting zoom so everyone stays
  * visible with padding.
  */
+/**
+ * Represents the shared multiplayer camera.
+ */
 public final class SharedMultiplayerCamera {
 
+    /**
+     * Internal constant for epsilon.
+     */
     private static final double EPSILON = 0.0001;
 
+    /**
+     * Internal state field for viewport width.
+     */
     private final double viewportWidth;
+    /**
+     * Internal state field for viewport height.
+     */
     private final double viewportHeight;
+    /**
+     * Internal state field for world min x.
+     */
     private final double worldMinX;
+    /**
+     * Internal state field for world max x.
+     */
     private final double worldMaxX;
+    /**
+     * Internal state field for world min y.
+     */
     private final double worldMinY;
+    /**
+     * Internal state field for world max y.
+     */
     private final double worldMaxY;
+    /**
+     * Internal state field for min zoom.
+     */
     private final double minZoom;
+    /**
+     * Internal state field for max zoom.
+     */
     private final double maxZoom;
+    /**
+     * Internal state field for dynamic zoom.
+     */
     private final boolean dynamicZoom;
+    /**
+     * Internal state field for fixed zoom.
+     */
     private final double fixedZoom;
+    /**
+     * Internal state field for padding x.
+     */
     private final double paddingX;
+    /**
+     * Internal state field for padding y.
+     */
     private final double paddingY;
+    /**
+     * Internal state field for follow speed.
+     */
     private final double followSpeed;
 
+    /**
+     * Internal state field for center x.
+     */
     private double centerX;
+    /**
+     * Internal state field for center y.
+     */
     private double centerY;
+    /**
+     * Internal state field for zoom.
+     */
     private double zoom;
+    /**
+     * Internal state field for initialized.
+     */
     private boolean initialized;
 
+    /**
+     * Creates a new shared multiplayer camera instance.
+     *
+     * @param viewportWidth parameter value
+     * @param viewportHeight parameter value
+     * @param worldMinX parameter value
+     * @param worldMaxX parameter value
+     * @param worldMinY parameter value
+     * @param worldMaxY parameter value
+     * @param minZoom parameter value
+     * @param maxZoom parameter value
+     * @param dynamicZoom parameter value
+     * @param fixedZoom parameter value
+     * @param paddingX parameter value
+     * @param paddingY parameter value
+     * @param followSpeed parameter value
+     */
     public SharedMultiplayerCamera(
             double viewportWidth,
             double viewportHeight,
@@ -68,6 +142,21 @@ public final class SharedMultiplayerCamera {
         this.zoom = dynamicZoom ? minZoom : this.fixedZoom;
     }
 
+    /**
+     * Creates a new shared multiplayer camera instance.
+     *
+     * @param viewportWidth parameter value
+     * @param viewportHeight parameter value
+     * @param worldMinX parameter value
+     * @param worldMaxX parameter value
+     * @param worldMinY parameter value
+     * @param worldMaxY parameter value
+     * @param minZoom parameter value
+     * @param maxZoom parameter value
+     * @param paddingX parameter value
+     * @param paddingY parameter value
+     * @param followSpeed parameter value
+     */
     public SharedMultiplayerCamera(
             double viewportWidth,
             double viewportHeight,
@@ -104,6 +193,12 @@ public final class SharedMultiplayerCamera {
      * @param deltaSeconds frame delta time in seconds
      * @param trackedBounds player bounds (supports 2-4 players, or any positive count)
      */
+    /**
+     * Updates this object state for the current frame.
+     *
+     * @param deltaSeconds parameter value
+     * @param trackedBounds parameter value
+     */
     public void update(double deltaSeconds, Collection<Rectangle2D> trackedBounds) {
         CameraTarget target = computeTarget(trackedBounds);
         if (target == null) {
@@ -127,6 +222,11 @@ public final class SharedMultiplayerCamera {
         zoom = smooth(zoom, target.zoom(), alpha);
     }
 
+    /**
+     * Executes snap to targets.
+     *
+     * @param trackedBounds parameter value
+     */
     public void snapToTargets(Collection<Rectangle2D> trackedBounds) {
         CameraTarget target = computeTarget(trackedBounds);
         if (target == null) {
@@ -138,26 +238,57 @@ public final class SharedMultiplayerCamera {
         initialized = true;
     }
 
+    /**
+     * Returns the camera x.
+     *
+     * @return the camera x
+     */
     public double getCameraX() {
         return centerX - (getViewWidth() * 0.5);
     }
 
+    /**
+     * Returns the camera y.
+     *
+     * @return the camera y
+     */
     public double getCameraY() {
         return centerY - (getViewHeight() * 0.5);
     }
 
+    /**
+     * Returns the zoom.
+     *
+     * @return the zoom
+     */
     public double getZoom() {
         return zoom;
     }
 
+    /**
+     * Returns the view width.
+     *
+     * @return the view width
+     */
     public double getViewWidth() {
         return viewportWidth / zoom;
     }
 
+    /**
+     * Returns the view height.
+     *
+     * @return the view height
+     */
     public double getViewHeight() {
         return viewportHeight / zoom;
     }
 
+    /**
+     * Internal helper for compute target.
+     *
+     * @param trackedBounds parameter value
+     * @return the resulting value
+     */
     private CameraTarget computeTarget(Collection<Rectangle2D> trackedBounds) {
         if (trackedBounds == null || trackedBounds.isEmpty()) {
             return null;
@@ -233,15 +364,38 @@ public final class SharedMultiplayerCamera {
         );
     }
 
+    /**
+     * Internal helper for smooth.
+     *
+     * @param current parameter value
+     * @param target parameter value
+     * @param alpha parameter value
+     * @return the resulting value
+     */
     private static double smooth(double current, double target, double alpha) {
         double next = current + (target - current) * alpha;
         return Math.abs(next - target) < EPSILON ? target : next;
     }
 
+    /**
+     * Internal helper for clamp.
+     *
+     * @param value parameter value
+     * @param min parameter value
+     * @param max parameter value
+     * @return the resulting value
+     */
     private static double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
 
+    /**
+     * Immutable target state computed from tracked bounds.
+     *
+     * @param centerX target camera center x-coordinate
+     * @param centerY target camera center y-coordinate
+     * @param zoom target camera zoom level
+     */
     private record CameraTarget(double centerX, double centerY, double zoom) {
     }
 }

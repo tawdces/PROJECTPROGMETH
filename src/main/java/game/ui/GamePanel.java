@@ -37,73 +37,258 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+/**
+ * Represents the game panel.
+ */
 public class GamePanel extends StackPane {
+    /**
+     * Internal constant for sky respawn y min.
+     */
     private static final double SKY_RESPAWN_Y_MIN = 260.0;
+    /**
+     * Internal constant for sky respawn y max.
+     */
     private static final double SKY_RESPAWN_Y_MAX = 430.0;
+    /**
+     * Internal constant for side respawn margin.
+     */
     private static final double SIDE_RESPAWN_MARGIN = 48.0;
+    /**
+     * Internal constant for respawn center spread.
+     */
     private static final double RESPAWN_CENTER_SPREAD = 140.0;
+    /**
+     * Internal constant for respawn pair offset.
+     */
     private static final double RESPAWN_PAIR_OFFSET = 88.0;
+    /**
+     * Internal constant for respawn pair jitter.
+     */
     private static final double RESPAWN_PAIR_JITTER = 24.0;
+    /**
+     * Internal constant for map render extend margin.
+     */
     private static final double MAP_RENDER_EXTEND_MARGIN = GameSettings.BLAST_ZONE_MARGIN + 24.0;
+    /**
+     * Internal constant for double jump effect size.
+     */
     private static final double DOUBLE_JUMP_EFFECT_SIZE = 44.0;
+    /**
+     * Internal constant for double jump effect life ms.
+     */
     private static final long DOUBLE_JUMP_EFFECT_LIFE_MS = 240L;
+    /**
+     * Internal constant for double jump effect start scale.
+     */
     private static final double DOUBLE_JUMP_EFFECT_START_SCALE = 0.82;
+    /**
+     * Internal constant for double jump effect end scale.
+     */
     private static final double DOUBLE_JUMP_EFFECT_END_SCALE = 1.48;
+    /**
+     * Internal constant for double jump effect max alpha.
+     */
     private static final double DOUBLE_JUMP_EFFECT_MAX_ALPHA = 0.95;
+    /**
+     * Internal constant for empty image.
+     */
     private static final Image EMPTY_IMAGE = GameImageLoader.emptyImage();
+    /**
+     * Internal constant for show platform guides.
+     */
     private static final boolean SHOW_PLATFORM_GUIDES = false;
 
+    /**
+     * Internal state field for on rematch.
+     */
     private final Runnable onRematch;
+    /**
+     * Internal state field for on back to menu.
+     */
     private final Runnable onBackToMenu;
 
+    /**
+     * Internal state field for canvas.
+     */
     private final Canvas canvas = new Canvas(GameSettings.WIDTH, GameSettings.HEIGHT);
+    /**
+     * Internal state field for gc.
+     */
     private final GraphicsContext gc = canvas.getGraphicsContext2D();
+    /**
+     * Internal state field for selected map.
+     */
     private final GameMap selectedMap;
+    /**
+     * Internal state field for bullet hit image.
+     */
     private final Image bulletHitImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/images/effects/Bullet_hit.png");
+    /**
+     * Internal state field for blood image.
+     */
     private final Image bloodImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/images/effects/Blood.png");
+    /**
+     * Internal state field for explosion image.
+     */
     private final Image explosionImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/images/effects/Explosion.png");
 
+    /**
+     * Internal state field for p1.
+     */
     private final Player p1;
+    /**
+     * Internal state field for p2.
+     */
     private final Player p2;
 
+    /**
+     * Internal state field for bullets.
+     */
     private final List<Bullet> bullets = new ArrayList<>();
+    /**
+     * Internal state field for drop coordinator.
+     */
     private final MatchDropCoordinator dropCoordinator;
+    /**
+     * Internal state field for weapon drops.
+     */
     private final List<WeaponDrop> weaponDrops;
+    /**
+     * Internal state field for traps.
+     */
     private final List<Trap> traps;
+    /**
+     * Internal state field for power ups.
+     */
     private final List<PowerUp> powerUps;
+    /**
+     * Internal state field for hit effects.
+     */
     private final List<GameEffect> hitEffects = new ArrayList<>();
+    /**
+     * Internal state field for world surfaces.
+     */
     private final List<PlatformSurface> worldSurfaces;
+    /**
+     * Internal state field for shared camera.
+     */
     private final SharedMultiplayerCamera sharedCamera;
+    /**
+     * Internal state field for tracked players.
+     */
     private final List<Player> trackedPlayers = new ArrayList<>(4);
+    /**
+     * Internal state field for tracked player bounds.
+     */
     private final List<Rectangle2D> trackedPlayerBounds = new ArrayList<>(4);
+    /**
+     * Internal state field for pressed keys.
+     */
     private final Set<KeyCode> pressedKeys = new HashSet<>();
+    /**
+     * Internal state field for p1 jump buffered until millis.
+     */
     private long p1JumpBufferedUntilMillis;
+    /**
+     * Internal state field for p2 jump buffered until millis.
+     */
     private long p2JumpBufferedUntilMillis;
+    /**
+     * Internal state field for p1 drop buffered until millis.
+     */
     private long p1DropBufferedUntilMillis;
+    /**
+     * Internal state field for p2 drop buffered until millis.
+     */
     private long p2DropBufferedUntilMillis;
+    /**
+     * Internal state field for random.
+     */
     private final Random random = new Random();
+    /**
+     * Internal state field for pause overlay.
+     */
     private final PauseOverlay pauseOverlay;
 
+    /**
+     * Internal state field for game over.
+     */
     private boolean gameOver;
+    /**
+     * Internal state field for paused.
+     */
     private boolean paused;
+    /**
+     * Internal state field for last frame nanos.
+     */
     private long lastFrameNanos;
+    /**
+     * Internal state field for p1 stocks.
+     */
     private int p1Stocks = GameSettings.STOCKS_PER_ROUND;
+    /**
+     * Internal state field for p2 stocks.
+     */
     private int p2Stocks = GameSettings.STOCKS_PER_ROUND;
+    /**
+     * Internal state field for p1 round wins.
+     */
     private int p1RoundWins;
+    /**
+     * Internal state field for p2 round wins.
+     */
     private int p2RoundWins;
+    /**
+     * Internal state field for round number.
+     */
     private int roundNumber = 1;
+    /**
+     * Internal state field for camera x.
+     */
     private double cameraX;
+    /**
+     * Internal state field for camera y.
+     */
     private double cameraY;
+    /**
+     * Internal state field for camera zoom.
+     */
     private double cameraZoom = GameSettings.CAMERA_MIN_ZOOM;
 
+    /**
+     * Internal state field for freeze until millis.
+     */
     private long freezeUntilMillis;
+    /**
+     * Internal state field for pending next round at millis.
+     */
     private long pendingNextRoundAtMillis;
+    /**
+     * Internal state field for center banner text.
+     */
     private String centerBannerText = "";
+    /**
+     * Internal state field for center banner until millis.
+     */
     private long centerBannerUntilMillis;
+    /**
+     * Internal state field for shake until millis.
+     */
     private long shakeUntilMillis;
+    /**
+     * Internal state field for shake strength.
+     */
     private double shakeStrength;
 
+    /**
+     * Internal state field for game loop.
+     */
     private final AnimationTimer gameLoop = new AnimationTimer() {
+        /**
+         * Executes handle.
+         *
+         * @param now parameter value
+         */
         @Override
         public void handle(long now) {
             if (lastFrameNanos == 0L) {
@@ -118,6 +303,15 @@ public class GamePanel extends StackPane {
         }
     };
 
+    /**
+     * Creates a new game panel instance.
+     *
+     * @param selectedMap parameter value
+     * @param p1Weapon parameter value
+     * @param p2Weapon parameter value
+     * @param onRematch parameter value
+     * @param onBackToMenu parameter value
+     */
     public GamePanel(GameMap selectedMap, Gun p1Weapon, Gun p2Weapon, Runnable onRematch, Runnable onBackToMenu) {
         this.onRematch = onRematch;
         this.onBackToMenu = onBackToMenu;
@@ -184,6 +378,11 @@ public class GamePanel extends StackPane {
         gameLoop.start();
     }
 
+    /**
+     * Executes bind input.
+     *
+     * @param scene parameter value
+     */
     public void bindInput(Scene scene) {
         scene.setOnKeyPressed(event -> {
             boolean isFreshPress = pressedKeys.add(event.getCode());
@@ -216,6 +415,11 @@ public class GamePanel extends StackPane {
         scene.setOnKeyReleased(event -> pressedKeys.remove(event.getCode()));
     }
 
+    /**
+     * Internal helper for register tracked player.
+     *
+     * @param player parameter value
+     */
     private void registerTrackedPlayer(Player player) {
         if (player == null || trackedPlayers.size() >= 4) {
             return;
@@ -223,10 +427,21 @@ public class GamePanel extends StackPane {
         trackedPlayers.add(player);
     }
 
+    /**
+     * Checks whether internal combat locked.
+     *
+     * @param nowMillis parameter value
+     * @return true when the condition is met; otherwise false
+     */
     private boolean isCombatLocked(long nowMillis) {
         return nowMillis < freezeUntilMillis || pendingNextRoundAtMillis > 0L;
     }
 
+    /**
+     * Updates internal game.
+     *
+     * @param deltaSeconds parameter value
+     */
     private void updateGame(double deltaSeconds) {
         if (paused || gameOver) {
             return;
@@ -276,6 +491,9 @@ public class GamePanel extends StackPane {
         updateCamera(deltaSeconds);
     }
 
+    /**
+     * Updates internal movement.
+     */
     private void updateMovement() {
         double p1Horizontal = axis(pressedKeys.contains(KeyCode.A), pressedKeys.contains(KeyCode.D));
         p1.setHorizontalInput(p1Horizontal);
@@ -284,6 +502,11 @@ public class GamePanel extends StackPane {
         p2.setHorizontalInput(p2Horizontal);
     }
 
+    /**
+     * Updates internal actions.
+     *
+     * @param nowMillis parameter value
+     */
     private void updateActions(long nowMillis) {
         if (p1.canAction(nowMillis) && pressedKeys.contains(KeyCode.SPACE)) {
             performAction(p1, p2);
@@ -293,6 +516,11 @@ public class GamePanel extends StackPane {
         }
     }
 
+    /**
+     * Internal helper for process buffered vertical inputs.
+     *
+     * @param nowMillis parameter value
+     */
     private void processBufferedVerticalInputs(long nowMillis) {
         if (p1JumpBufferedUntilMillis > 0L && nowMillis <= p1JumpBufferedUntilMillis) {
             Player.JumpResult jumpResult = p1.jumpWithResult(nowMillis);
@@ -335,6 +563,13 @@ public class GamePanel extends StackPane {
         }
     }
 
+    /**
+     * Internal helper for axis.
+     *
+     * @param negative parameter value
+     * @param positive parameter value
+     * @return the resulting value
+     */
     private double axis(boolean negative, boolean positive) {
         if (negative == positive) {
             return 0.0;
@@ -342,6 +577,11 @@ public class GamePanel extends StackPane {
         return positive ? 1.0 : -1.0;
     }
 
+    /**
+     * Internal helper for check landmine triggers.
+     *
+     * @param now parameter value
+     */
     private void checkLandmineTriggers(long now) {
         for (Trap trap : traps) {
             if (!trap.isActive() || !(trap instanceof Landmine)) continue;
@@ -355,6 +595,12 @@ public class GamePanel extends StackPane {
         }
     }
 
+    /**
+     * Internal helper for perform action.
+     *
+     * @param attacker parameter value
+     * @param defender parameter value
+     */
     private void performAction(Player attacker, Player defender) {
         long now = System.currentTimeMillis();
         if (!attacker.canAction(now)) {
@@ -397,6 +643,11 @@ public class GamePanel extends StackPane {
         attacker.setActionCooldown(now, GameSettings.MELEE_COOLDOWN_MS);
     }
 
+    /**
+     * Internal helper for handle bullet hits.
+     *
+     * @param now parameter value
+     */
     private void handleBulletHits(long now) {
         for (Bullet bullet : bullets) {
             if (!bullet.isActive()) continue;
@@ -445,6 +696,12 @@ public class GamePanel extends StackPane {
         }
     }
 
+    /**
+     * Internal helper for trigger explosion.
+     *
+     * @param trap parameter value
+     * @param now parameter value
+     */
     private void triggerExplosion(Trap trap, long now) {
         trap.deactivate();
         SoundManager.getInstance().playEffect("explosion");
@@ -462,6 +719,15 @@ public class GamePanel extends StackPane {
         applyExplosionForce(p2, centerX, centerY, now, forceModifier);
     }
 
+    /**
+     * Internal helper for apply explosion force.
+     *
+     * @param player parameter value
+     * @param ex parameter value
+     * @param ey parameter value
+     * @param now parameter value
+     * @param trapForceModifier parameter value
+     */
     private void applyExplosionForce(Player player, double ex, double ey, long now, double trapForceModifier) {
         if (player.isInvulnerable(now)) return;
 
@@ -485,10 +751,21 @@ public class GamePanel extends StackPane {
         }
     }
 
+    /**
+     * Internal helper for can drop to lower platform.
+     *
+     * @param player parameter value
+     * @return true when the condition is met; otherwise false
+     */
     private boolean canDropToLowerPlatform(Player player) {
         return player.isOnGround();
     }
 
+    /**
+     * Internal helper for handle blast zone deaths.
+     *
+     * @param now parameter value
+     */
     private void handleBlastZoneDeaths(long now) {
         if (gameOver) {
             return;
@@ -550,6 +827,12 @@ public class GamePanel extends StackPane {
         respawnPlayerFromSky(loser, now);
     }
 
+    /**
+     * Internal helper for conclude round.
+     *
+     * @param winner parameter value
+     * @param now parameter value
+     */
     private void concludeRound(String winner, long now) {
         if ("Player 1".equals(winner)) {
             p1RoundWins++;
@@ -565,18 +848,33 @@ public class GamePanel extends StackPane {
         queueNextRound(now, winner + " TAKES ROUND");
     }
 
+    /**
+     * Internal helper for queue next round.
+     *
+     * @param now parameter value
+     * @param bannerText parameter value
+     */
     private void queueNextRound(long now, String bannerText) {
         showCenterBanner(bannerText, GameSettings.ROUND_END_DELAY_MS);
         pendingNextRoundAtMillis = now + GameSettings.ROUND_END_DELAY_MS;
         freezeUntilMillis = pendingNextRoundAtMillis;
     }
 
+    /**
+     * Checks whether internal out of map.
+     *
+     * @param player parameter value
+     * @return true when the condition is met; otherwise false
+     */
     private boolean isOutOfMap(Player player) {
         var b = player.getBounds();
         double margin = GameSettings.BLAST_ZONE_MARGIN;
         return b.getMinY() > GameSettings.HEIGHT + margin;
     }
 
+    /**
+     * Renders internal game.
+     */
     private void renderGame() {
         long now = System.currentTimeMillis();
 
@@ -641,6 +939,12 @@ public class GamePanel extends StackPane {
         renderCenterBanner(now);
     }
 
+    /**
+     * Renders internal double jump effect.
+     *
+     * @param effect parameter value
+     * @param nowMillis parameter value
+     */
     private void renderDoubleJumpEffect(GameEffect effect, long nowMillis) {
         long totalLife = Math.max(1L, effect.totalLife());
         long remaining = Math.max(0L, effect.expiresAt() - nowMillis);
@@ -694,10 +998,16 @@ public class GamePanel extends StackPane {
         }
     }
 
+    /**
+     * Renders internal extended map.
+     */
     private void renderExtendedMap() {
         selectedMap.render(gc, cameraX, cameraY, MAP_RENDER_EXTEND_MARGIN);
     }
 
+    /**
+     * Renders internal blast zone warning.
+     */
     private void renderBlastZoneWarning() {
         gc.setFill(Color.web("#ff3344", 0.18));
         gc.fillRect(0, 0, GameSettings.WIDTH, 8);
@@ -706,6 +1016,11 @@ public class GamePanel extends StackPane {
         gc.fillRect(GameSettings.WIDTH - 8, 0, 8, GameSettings.HEIGHT);
     }
 
+    /**
+     * Updates internal camera.
+     *
+     * @param deltaSeconds parameter value
+     */
     private void updateCamera(double deltaSeconds) {
         trackedPlayerBounds.clear();
         for (Player player : trackedPlayers) {
@@ -718,6 +1033,9 @@ public class GamePanel extends StackPane {
         cameraZoom = sharedCamera.getZoom();
     }
 
+    /**
+     * Renders internal platform guides.
+     */
     private void renderPlatformGuides() {
         gc.setFill(Color.web("#2f7cff", 0.45));
         gc.setStroke(Color.web("#0f3fa1", 0.85));
@@ -729,6 +1047,9 @@ public class GamePanel extends StackPane {
         }
     }
 
+    /**
+     * Renders internal hud.
+     */
     private void renderHud() {
         long now = System.currentTimeMillis();
         double panelY = 10;
@@ -781,6 +1102,16 @@ public class GamePanel extends StackPane {
         );
     }
 
+    /**
+     * Internal helper for draw hud frame.
+     *
+     * @param x parameter value
+     * @param y parameter value
+     * @param width parameter value
+     * @param height parameter value
+     * @param fill parameter value
+     * @param stroke parameter value
+     */
     private void drawHudFrame(double x, double y, double width, double height, Color fill, Color stroke) {
         gc.setFill(fill);
         gc.fillRoundRect(x, y, width, height, 14, 14);
@@ -789,6 +1120,15 @@ public class GamePanel extends StackPane {
         gc.strokeRoundRect(x, y, width, height, 14, 14);
     }
 
+    /**
+     * Internal helper for draw stocks.
+     *
+     * @param startX parameter value
+     * @param y parameter value
+     * @param stocks parameter value
+     * @param aliveColor parameter value
+     * @param fromLeft parameter value
+     */
     private void drawStocks(double startX, double y, int stocks, Color aliveColor, boolean fromLeft) {
         for (int i = 0; i < GameSettings.STOCKS_PER_ROUND; i++) {
             double x = fromLeft ? (startX + i * 17.0) : (startX - i * 17.0);
@@ -800,6 +1140,11 @@ public class GamePanel extends StackPane {
         }
     }
 
+    /**
+     * Renders internal center banner.
+     *
+     * @param now parameter value
+     */
     private void renderCenterBanner(long now) {
         if (centerBannerText == null || centerBannerText.isBlank() || now > centerBannerUntilMillis) {
             return;
@@ -825,11 +1170,22 @@ public class GamePanel extends StackPane {
         gc.restore();
     }
 
+    /**
+     * Internal helper for show center banner.
+     *
+     * @param text parameter value
+     * @param durationMillis parameter value
+     */
     private void showCenterBanner(String text, long durationMillis) {
         centerBannerText = text;
         centerBannerUntilMillis = System.currentTimeMillis() + durationMillis;
     }
 
+    /**
+     * Internal helper for finish game.
+     *
+     * @param winner parameter value
+     */
     private void finishGame(String winner) {
         if (gameOver) {
             return;
@@ -871,10 +1227,24 @@ public class GamePanel extends StackPane {
         getChildren().add(modal);
     }
 
+    /**
+     * Internal helper for respawn player from sky.
+     *
+     * @param player parameter value
+     * @param nowMillis parameter value
+     */
     private void respawnPlayerFromSky(Player player, long nowMillis) {
         respawnPlayerFromSky(player, nowMillis, 0.0, RESPAWN_CENTER_SPREAD);
     }
 
+    /**
+     * Internal helper for respawn player from sky.
+     *
+     * @param player parameter value
+     * @param nowMillis parameter value
+     * @param centerOffsetX parameter value
+     * @param jitterRange parameter value
+     */
     private void respawnPlayerFromSky(Player player, long nowMillis, double centerOffsetX, double jitterRange) {
         double centerSpawnX = ((GameSettings.WIDTH - GameSettings.PLAYER_WIDTH) * 0.5) + centerOffsetX;
         double jitter = (random.nextDouble() * 2.0 - 1.0) * Math.max(0.0, jitterRange);
@@ -885,11 +1255,21 @@ public class GamePanel extends StackPane {
         player.respawnFromSky(spawnX, spawnY, nowMillis);
     }
 
+    /**
+     * Internal helper for spawn round players.
+     *
+     * @param nowMillis parameter value
+     */
     private void spawnRoundPlayers(long nowMillis) {
         respawnPlayerFromSky(p1, nowMillis, -RESPAWN_PAIR_OFFSET, RESPAWN_PAIR_JITTER);
         respawnPlayerFromSky(p2, nowMillis, RESPAWN_PAIR_OFFSET, RESPAWN_PAIR_JITTER);
     }
 
+    /**
+     * Internal helper for prepare round.
+     *
+     * @param targetRoundNumber parameter value
+     */
     private void prepareRound(int targetRoundNumber) {
         long now = System.currentTimeMillis();
         roundNumber = targetRoundNumber;
@@ -903,6 +1283,13 @@ public class GamePanel extends StackPane {
         showCenterBanner("ROUND " + roundNumber, GameSettings.ROUND_START_COUNTDOWN_MS);
     }
 
+    /**
+     * Internal helper for style menu button.
+     *
+     * @param button parameter value
+     * @param top parameter value
+     * @param bottom parameter value
+     */
     private static void styleMenuButton(Button button, String top, String bottom) {
         button.setFocusTraversable(false);
         button.setTextFill(Color.WHITE);
@@ -914,6 +1301,9 @@ public class GamePanel extends StackPane {
         );
     }
 
+    /**
+     * Internal helper for toggle pause.
+     */
     private void togglePause() {
         if (gameOver) {
             return;
@@ -921,6 +1311,11 @@ public class GamePanel extends StackPane {
         setPaused(!paused);
     }
 
+    /**
+     * Sets internal paused.
+     *
+     * @param pauseValue parameter value
+     */
     private void setPaused(boolean pauseValue) {
         paused = pauseValue;
         if (paused) {
@@ -931,25 +1326,50 @@ public class GamePanel extends StackPane {
         pauseOverlay.showPaused(paused);
     }
 
+    /**
+     * Internal helper for shutdown game systems.
+     */
     private void shutdownGameSystems() {
         gameLoop.stop();
         SoundManager.getInstance().stopBgm();
     }
 
+    /**
+     * Internal helper for restart match.
+     */
     private void restartMatch() {
         shutdownGameSystems();
         onRematch.run();
     }
 
+    /**
+     * Internal helper for back to menu.
+     */
     private void backToMenu() {
         shutdownGameSystems();
         onBackToMenu.run();
     }
 
+    /**
+     * Internal helper for add effect.
+     *
+     * @param type parameter value
+     * @param image parameter value
+     * @param x parameter value
+     * @param y parameter value
+     * @param width parameter value
+     * @param height parameter value
+     * @param lifeMillis parameter value
+     */
     private void addEffect(String type, Image image, double x, double y, double width, double height, long lifeMillis) {
         hitEffects.add(new GameEffect(type, image, x, y, width, height, System.currentTimeMillis() + lifeMillis, lifeMillis));
     }
 
+    /**
+     * Internal helper for spawn double jump effect.
+     *
+     * @param player parameter value
+     */
     private void spawnDoubleJumpEffect(Player player) {
         if (player == null) {
             return;
@@ -961,16 +1381,32 @@ public class GamePanel extends StackPane {
         addEffect("doubleJump", EMPTY_IMAGE, effectX, effectY, size, size, DOUBLE_JUMP_EFFECT_LIFE_MS);
     }
 
+    /**
+     * Internal helper for remove expired effects.
+     *
+     * @param nowMillis parameter value
+     */
     private void removeExpiredEffects(long nowMillis) {
         hitEffects.removeIf(effect -> effect.isExpired(nowMillis));
     }
 
+    /**
+     * Internal helper for trigger camera shake.
+     *
+     * @param strength parameter value
+     * @param durationMillis parameter value
+     */
     private void triggerCameraShake(double strength, long durationMillis) {
         double clampedStrength = Math.max(0.0, Math.min(GameSettings.SCREEN_SHAKE_MAX_STRENGTH, strength));
         shakeStrength = Math.max(shakeStrength, clampedStrength);
         shakeUntilMillis = Math.max(shakeUntilMillis, System.currentTimeMillis() + durationMillis);
     }
 
+    /**
+     * Internal helper for handle power up pickups.
+     *
+     * @param nowMillis parameter value
+     */
     private void handlePowerUpPickups(long nowMillis) {
         if (powerUps.isEmpty()) return;
 
@@ -993,6 +1429,11 @@ public class GamePanel extends StackPane {
         });
     }
 
+    /**
+     * Internal helper for handle weapon pickups.
+     *
+     * @param nowMillis parameter value
+     */
     private void handleWeaponPickups(long nowMillis) {
         if (weaponDrops.isEmpty()) {
             return;
@@ -1000,6 +1441,14 @@ public class GamePanel extends StackPane {
         weaponDrops.removeIf(drop -> tryPickup(drop, p1, nowMillis) || tryPickup(drop, p2, nowMillis));
     }
 
+    /**
+     * Internal helper for try pickup.
+     *
+     * @param drop parameter value
+     * @param player parameter value
+     * @param nowMillis parameter value
+     * @return true when the condition is met; otherwise false
+     */
     private boolean tryPickup(WeaponDrop drop, Player player, long nowMillis) {
         if (!drop.isLanded()) {
             return false;

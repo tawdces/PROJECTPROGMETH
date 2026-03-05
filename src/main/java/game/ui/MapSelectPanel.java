@@ -23,15 +23,36 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+/**
+ * Represents the map select panel.
+ */
 public class MapSelectPanel extends VBox {
 
+    /**
+     * Base preview width before scale adjustment.
+     */
     public static int mapWidth = 540;
+    /**
+     * Base preview height before scale adjustment.
+     */
     public static int mapHeight = 300;
+    /**
+     * Internal constant for maps.
+     */
     private static final List<GameMap> MAPS = GameMap.availableMaps();
+    /**
+     * Constant for map resources.
+     */
     public static final List<String> MAP_RESOURCES = MAPS.stream()
             .map(GameMap::resourcePath)
             .collect(Collectors.toUnmodifiableList());
 
+    /**
+     * Creates a new map select panel instance.
+     *
+     * @param onMapSelected parameter value
+     * @param onBackToMenu parameter value
+     */
     public MapSelectPanel(Consumer<GameMap> onMapSelected, Runnable onBackToMenu) {
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         setAlignment(Pos.CENTER);
@@ -125,6 +146,12 @@ public class MapSelectPanel extends VBox {
         getChildren().addAll(title, previewFrame, mapName, page, hint, buttonLayout);
     }
 
+    /**
+     * Internal helper for load map.
+     *
+     * @param index parameter value
+     * @return the resulting value
+     */
     private static Image loadMap(int index) {
         String previewResource = MAPS.get(index).previewResourcePath();
 
@@ -140,14 +167,35 @@ public class MapSelectPanel extends VBox {
         throw new IllegalArgumentException("Map resource not found: " + previewResource);
     }
 
+    /**
+     * Internal helper for label for.
+     *
+     * @param index parameter value
+     * @return the resulting value
+     */
     private static String labelFor(int index) {
         return MAPS.get(index).label();
     }
 
+    /**
+     * Internal helper for cycle index.
+     *
+     * @param current parameter value
+     * @param direction parameter value
+     * @param size parameter value
+     * @return the resulting value
+     */
     private static int cycleIndex(int current, int direction, int size) {
         return (current + direction + size) % size;
     }
 
+    /**
+     * Internal helper for style button.
+     *
+     * @param button parameter value
+     * @param top parameter value
+     * @param bottom parameter value
+     */
     private static void styleButton(Button button, String top, String bottom) {
         button.setFocusTraversable(false);
         button.setTextFill(Color.WHITE);

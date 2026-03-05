@@ -11,8 +11,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 final class GameImageLoader {
+    /**
+     * Internal constant for empty image.
+     */
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
 
+    /**
+     * Creates a private game image loader instance.
+     */
     private GameImageLoader() {
     }
 
@@ -24,6 +30,14 @@ final class GameImageLoader {
         return loadImageInternal(ownerClass, resourcePath, true);
     }
 
+    /**
+     * Internal helper for load image internal.
+     *
+     * @param ownerClass parameter value
+     * @param resourcePath parameter value
+     * @param transparent parameter value
+     * @return the resulting value
+     */
     private static Image loadImageInternal(Class<?> ownerClass, String resourcePath, boolean transparent) {
         Image image;
         var url = ownerClass.getResource(resourcePath);
@@ -46,6 +60,12 @@ final class GameImageLoader {
         return EMPTY_IMAGE;
     }
 
+    /**
+     * Internal helper for make background transparent.
+     *
+     * @param raw parameter value
+     * @return the resulting value
+     */
     private static Image makeBackgroundTransparent(Image raw) {
         if (raw == null || raw.isError() || raw == EMPTY_IMAGE) {
             return EMPTY_IMAGE;
@@ -82,6 +102,13 @@ final class GameImageLoader {
         return out;
     }
 
+    /**
+     * Internal helper for color distance.
+     *
+     * @param a parameter value
+     * @param b parameter value
+     * @return the resulting value
+     */
     private static double colorDistance(Color a, Color b) {
         double dr = a.getRed() - b.getRed();
         double dg = a.getGreen() - b.getGreen();

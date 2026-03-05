@@ -19,17 +19,50 @@ import java.util.List;
 import java.util.Random;
 
 final class MatchDropCoordinator {
+    /**
+     * Internal constant for sky drop min height.
+     */
     private static final double SKY_DROP_MIN_HEIGHT = 70.0;
+    /**
+     * Internal constant for sky drop max height.
+     */
     private static final double SKY_DROP_MAX_HEIGHT = 250.0;
+    /**
+     * Internal state field for world surfaces.
+     */
     private final List<PlatformSurface> worldSurfaces;
+    /**
+     * Internal state field for random.
+     */
     private final Random random;
+    /**
+     * Internal state field for weapon drops.
+     */
     private final List<WeaponDrop> weaponDrops = new ArrayList<>();
+    /**
+     * Internal state field for traps.
+     */
     private final List<Trap> traps = new ArrayList<>();
+    /**
+     * Internal state field for power ups.
+     */
     private final List<PowerUp> powerUps = new ArrayList<>();
 
+    /**
+     * Internal state field for next gun drop at millis.
+     */
     private long nextGunDropAtMillis;
+    /**
+     * Internal state field for next trap drop at millis.
+     */
     private long nextTrapDropAtMillis;
+    /**
+     * Internal state field for next power up drop at millis.
+     */
     private long nextPowerUpDropAtMillis;
+    /**
+     * Internal state field for last drop update at millis.
+     */
     private long lastDropUpdateAtMillis;
 
     MatchDropCoordinator(List<PlatformSurface> worldSurfaces, Random random) {
@@ -88,6 +121,9 @@ final class MatchDropCoordinator {
         }
     }
 
+    /**
+     * Internal helper for spawn traps.
+     */
     private void spawnTraps() {
         if (worldSurfaces.isEmpty()) {
             return;
@@ -118,6 +154,11 @@ final class MatchDropCoordinator {
         }
     }
 
+    /**
+     * Updates internal power up drops.
+     *
+     * @param nowMillis parameter value
+     */
     private void updatePowerUpDrops(long nowMillis) {
         if (nowMillis < nextPowerUpDropAtMillis) {
             return;
@@ -151,6 +192,11 @@ final class MatchDropCoordinator {
         nextPowerUpDropAtMillis = nowMillis + GameSettings.POWERUP_DROP_INTERVAL_MS;
     }
 
+    /**
+     * Updates internal trap drops.
+     *
+     * @param nowMillis parameter value
+     */
     private void updateTrapDrops(long nowMillis) {
         if (nowMillis < nextTrapDropAtMillis) {
             return;
@@ -184,6 +230,11 @@ final class MatchDropCoordinator {
         nextTrapDropAtMillis = nowMillis + GameSettings.TRAP_DROP_INTERVAL_MS;
     }
 
+    /**
+     * Updates internal weapon drops.
+     *
+     * @param nowMillis parameter value
+     */
     private void updateWeaponDrops(long nowMillis) {
         if (nowMillis < nextGunDropAtMillis) {
             return;
@@ -200,6 +251,11 @@ final class MatchDropCoordinator {
         nextGunDropAtMillis = nowMillis + GameSettings.NEXT_DROP_INTERVAL_MS;
     }
 
+    /**
+     * Creates weapon drop for internal use.
+     *
+     * @return the resulting value
+     */
     private WeaponDrop createWeaponDrop() {
         if (worldSurfaces.isEmpty()) {
             return null;
@@ -226,6 +282,11 @@ final class MatchDropCoordinator {
         return new WeaponDrop(spawnX, spawnY, landingY, gun);
     }
 
+    /**
+     * Updates internal active falling drops.
+     *
+     * @param deltaSeconds parameter value
+     */
     private void updateActiveFallingDrops(double deltaSeconds) {
         if (deltaSeconds <= 0.0) {
             return;
@@ -235,11 +296,22 @@ final class MatchDropCoordinator {
         }
     }
 
+    /**
+     * Internal helper for random sky top y.
+     *
+     * @return the resulting value
+     */
     private double randomSkyTopY() {
         double dropHeight = SKY_DROP_MIN_HEIGHT + random.nextDouble() * (SKY_DROP_MAX_HEIGHT - SKY_DROP_MIN_HEIGHT);
         return -dropHeight;
     }
 
+    /**
+     * Internal helper for compute drop delta seconds.
+     *
+     * @param nowMillis parameter value
+     * @return the resulting value
+     */
     private double computeDropDeltaSeconds(long nowMillis) {
         if (lastDropUpdateAtMillis <= 0L) {
             lastDropUpdateAtMillis = nowMillis;

@@ -11,18 +11,48 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+/**
+ * Represents the game map.
+ */
 public final class GameMap {
+    /**
+     * Internal constant for empty image.
+     */
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
 
+    /**
+     * Internal constant for map source width.
+     */
     private static final double MAP_SOURCE_WIDTH = 598.0;
+    /**
+     * Internal constant for map source height.
+     */
     private static final double MAP_SOURCE_HEIGHT = 348.0;
+    /**
+     * Internal constant for sunset platform source width.
+     */
     private static final double SUNSET_PLATFORM_SOURCE_WIDTH = 1898.0;
+    /**
+     * Internal constant for sunset platform source height.
+     */
     private static final double SUNSET_PLATFORM_SOURCE_HEIGHT = 894.0;
 
+    /**
+     * Internal constant for default p1 spawn x.
+     */
     private static final double DEFAULT_P1_SPAWN_X = classicX(100);
+    /**
+     * Internal constant for default p2 spawn x.
+     */
     private static final double DEFAULT_P2_SPAWN_X = classicX(500);
+    /**
+     * Internal constant for default spawn ground y.
+     */
     private static final double DEFAULT_SPAWN_GROUND_Y = classicY(214);
 
+    /**
+     * Internal constant for available maps.
+     */
     private static final List<GameMap> AVAILABLE_MAPS = List.of(
             new GameMap("/images/maps/Map1.png", "/images/maps/Map1.png", "Map 1", Color.web("#d9ecff"), false, map1Surfaces()),
             new GameMap("/images/maps/Map2.png", "/images/maps/Map2.png", "Map 2", Color.web("#d9ecff"), false, map2Surfaces()),
@@ -30,26 +60,90 @@ public final class GameMap {
             new GameMap("/images/sunset/Background.png", "/images/maps/Map4.png", "Sunset", Color.web("#a97b74"), true, sunsetSurfaces())
     );
 
+    /**
+     * Internal state field for resource path.
+     */
     private final String resourcePath;
+    /**
+     * Internal state field for preview resource path.
+     */
     private final String previewResourcePath;
+    /**
+     * Internal state field for label.
+     */
     private final String label;
+    /**
+     * Internal state field for background color.
+     */
     private final Color backgroundColor;
+    /**
+     * Internal state field for sunset style.
+     */
     private final boolean sunsetStyle;
+    /**
+     * Internal state field for surfaces.
+     */
     private final List<PlatformSurface> surfaces;
+    /**
+     * Internal state field for player one spawn x.
+     */
     private final double playerOneSpawnX;
+    /**
+     * Internal state field for player two spawn x.
+     */
     private final double playerTwoSpawnX;
+    /**
+     * Internal state field for spawn ground y.
+     */
     private final double spawnGroundY;
 
+    /**
+     * Tracks whether map assets were loaded lazily.
+     */
     private volatile boolean assetsLoaded;
+    /**
+     * Internal state field for base image.
+     */
     private Image baseImage = EMPTY_IMAGE;
+    /**
+     * Internal state field for sunset background image.
+     */
     private Image sunsetBackgroundImage = EMPTY_IMAGE;
+    /**
+     * Internal state field for sunset sun image.
+     */
     private Image sunsetSunImage = EMPTY_IMAGE;
+    /**
+     * Internal state field for sunset mountain image.
+     */
     private Image sunsetMountainImage = EMPTY_IMAGE;
+    /**
+     * Internal state field for sunset city far image.
+     */
     private Image sunsetCityFarImage = EMPTY_IMAGE;
+    /**
+     * Internal state field for sunset city mid image.
+     */
     private Image sunsetCityMidImage = EMPTY_IMAGE;
+    /**
+     * Internal state field for sunset city near image.
+     */
     private Image sunsetCityNearImage = EMPTY_IMAGE;
+    /**
+     * Internal state field for sunset platform image.
+     */
     private Image sunsetPlatformImage = EMPTY_IMAGE;
 
+    /**
+     * Creates a private game map instance.
+     *
+     * @param resourcePath parameter value
+     * @param previewResourcePath parameter value
+     * @param label parameter value
+     * @param backgroundColor parameter value
+     * @param sunsetStyle parameter value
+     * @param surfaces parameter value
+     */
     private GameMap(
             String resourcePath,
             String previewResourcePath,
@@ -69,14 +163,30 @@ public final class GameMap {
         this.spawnGroundY = DEFAULT_SPAWN_GROUND_Y;
     }
 
+    /**
+     * Executes available maps.
+     *
+     * @return the resulting value
+     */
     public static List<GameMap> availableMaps() {
         return AVAILABLE_MAPS;
     }
 
+    /**
+     * Executes default map.
+     *
+     * @return the resulting value
+     */
     public static GameMap defaultMap() {
         return AVAILABLE_MAPS.get(0);
     }
 
+    /**
+     * Executes from resource.
+     *
+     * @param resourcePath parameter value
+     * @return the resulting value
+     */
     public static GameMap fromResource(String resourcePath) {
         for (GameMap map : AVAILABLE_MAPS) {
             if (map.resourcePath.equals(resourcePath)) {
@@ -86,38 +196,86 @@ public final class GameMap {
         return defaultMap();
     }
 
+    /**
+     * Executes resource path.
+     *
+     * @return the resulting value
+     */
     public String resourcePath() {
         return resourcePath;
     }
 
+    /**
+     * Executes preview resource path.
+     *
+     * @return the resulting value
+     */
     public String previewResourcePath() {
         return previewResourcePath;
     }
 
+    /**
+     * Executes label.
+     *
+     * @return the resulting value
+     */
     public String label() {
         return label;
     }
 
+    /**
+     * Executes background color.
+     *
+     * @return the resulting value
+     */
     public Color backgroundColor() {
         return backgroundColor;
     }
 
+    /**
+     * Executes surfaces.
+     *
+     * @return the resulting value
+     */
     public List<PlatformSurface> surfaces() {
         return surfaces;
     }
 
+    /**
+     * Executes player one spawn x.
+     *
+     * @return the resulting value
+     */
     public double playerOneSpawnX() {
         return playerOneSpawnX;
     }
 
+    /**
+     * Executes player two spawn x.
+     *
+     * @return the resulting value
+     */
     public double playerTwoSpawnX() {
         return playerTwoSpawnX;
     }
 
+    /**
+     * Executes spawn ground y.
+     *
+     * @return the resulting value
+     */
     public double spawnGroundY() {
         return spawnGroundY;
     }
 
+    /**
+     * Renders this object.
+     *
+     * @param gc parameter value
+     * @param cameraX parameter value
+     * @param cameraY parameter value
+     * @param extendMargin parameter value
+     */
     public void render(GraphicsContext gc, double cameraX, double cameraY, double extendMargin) {
         ensureAssetsLoaded();
         if (sunsetStyle) {
@@ -134,6 +292,14 @@ public final class GameMap {
         );
     }
 
+    /**
+     * Renders internal sunset parallax.
+     *
+     * @param gc parameter value
+     * @param cameraX parameter value
+     * @param cameraY parameter value
+     * @param extendMargin parameter value
+     */
     private void renderSunsetParallax(GraphicsContext gc, double cameraX, double cameraY, double extendMargin) {
         drawParallaxLayer(gc, sunsetBackgroundImage, -extendMargin * 2.0, -extendMargin * 2.0, GameSettings.WIDTH + (extendMargin * 4.0), GameSettings.HEIGHT + (extendMargin * 4.0), 0.02, 0.02, cameraX, cameraY);
         drawParallaxLayer(gc, sunsetSunImage, -220.0, -90.0, 1400.0, 860.0, 0.08, 0.05, cameraX, cameraY);
@@ -144,6 +310,20 @@ public final class GameMap {
         drawParallaxLayer(gc, sunsetPlatformImage, 0.0, 0.0, GameSettings.WIDTH, GameSettings.HEIGHT, 1.0, 1.0, cameraX, cameraY);
     }
 
+    /**
+     * Internal helper for draw parallax layer.
+     *
+     * @param gc parameter value
+     * @param image parameter value
+     * @param x parameter value
+     * @param y parameter value
+     * @param width parameter value
+     * @param height parameter value
+     * @param speedX parameter value
+     * @param speedY parameter value
+     * @param cameraX parameter value
+     * @param cameraY parameter value
+     */
     private static void drawParallaxLayer(
             GraphicsContext gc,
             Image image,
@@ -164,6 +344,9 @@ public final class GameMap {
         gc.drawImage(image, drawX, drawY, width, height);
     }
 
+    /**
+     * Internal helper for ensure assets loaded.
+     */
     private void ensureAssetsLoaded() {
         if (assetsLoaded) {
             return;
@@ -186,6 +369,12 @@ public final class GameMap {
         }
     }
 
+    /**
+     * Internal helper for load image.
+     *
+     * @param resourcePath parameter value
+     * @return the resulting value
+     */
     private static Image loadImage(String resourcePath) {
         var url = GameMap.class.getResource(resourcePath);
         if (url != null) {
@@ -201,6 +390,11 @@ public final class GameMap {
         return EMPTY_IMAGE;
     }
 
+    /**
+     * Internal helper for map1 surfaces.
+     *
+     * @return the resulting value
+     */
     private static List<PlatformSurface> map1Surfaces() {
         return List.of(
                 new PlatformSurface(classicX(120), classicY(135), classicW(148), classicH(12), true),
@@ -212,6 +406,11 @@ public final class GameMap {
         );
     }
 
+    /**
+     * Internal helper for map2 surfaces.
+     *
+     * @return the resulting value
+     */
     private static List<PlatformSurface> map2Surfaces() {
         return List.of(
                 new PlatformSurface(classicX(60), classicY(70), classicW(160), classicH(12), true),
@@ -221,6 +420,11 @@ public final class GameMap {
         );
     }
 
+    /**
+     * Internal helper for map3 surfaces.
+     *
+     * @return the resulting value
+     */
     private static List<PlatformSurface> map3Surfaces() {
         return List.of(
                 new PlatformSurface(classicX(-30), classicY(150), classicW(120), classicH(10), true),
@@ -231,6 +435,11 @@ public final class GameMap {
         );
     }
 
+    /**
+     * Internal helper for sunset surfaces.
+     *
+     * @return the resulting value
+     */
     private static List<PlatformSurface> sunsetSurfaces() {
         return List.of(
                 new PlatformSurface(sunsetX(542), sunsetY(50), sunsetW(814), sunsetH(24), true),
@@ -242,34 +451,82 @@ public final class GameMap {
         );
     }
 
+    /**
+     * Internal helper for classic x.
+     *
+     * @param mapX parameter value
+     * @return the resulting value
+     */
     private static double classicX(double mapX) {
         return (mapX / MAP_SOURCE_WIDTH) * GameSettings.WIDTH;
     }
 
+    /**
+     * Internal helper for classic y.
+     *
+     * @param mapY parameter value
+     * @return the resulting value
+     */
     private static double classicY(double mapY) {
         return (mapY / MAP_SOURCE_HEIGHT) * GameSettings.HEIGHT;
     }
 
+    /**
+     * Internal helper for classic w.
+     *
+     * @param mapWidth parameter value
+     * @return the resulting value
+     */
     private static double classicW(double mapWidth) {
         return (mapWidth / MAP_SOURCE_WIDTH) * GameSettings.WIDTH;
     }
 
+    /**
+     * Internal helper for classic h.
+     *
+     * @param mapHeight parameter value
+     * @return the resulting value
+     */
     private static double classicH(double mapHeight) {
         return (mapHeight / MAP_SOURCE_HEIGHT) * GameSettings.HEIGHT;
     }
 
+    /**
+     * Internal helper for sunset x.
+     *
+     * @param sourceX parameter value
+     * @return the resulting value
+     */
     private static double sunsetX(double sourceX) {
         return (sourceX / SUNSET_PLATFORM_SOURCE_WIDTH) * GameSettings.WIDTH;
     }
 
+    /**
+     * Internal helper for sunset y.
+     *
+     * @param sourceY parameter value
+     * @return the resulting value
+     */
     private static double sunsetY(double sourceY) {
         return (sourceY / SUNSET_PLATFORM_SOURCE_HEIGHT) * GameSettings.HEIGHT;
     }
 
+    /**
+     * Internal helper for sunset w.
+     *
+     * @param sourceWidth parameter value
+     * @return the resulting value
+     */
     private static double sunsetW(double sourceWidth) {
         return (sourceWidth / SUNSET_PLATFORM_SOURCE_WIDTH) * GameSettings.WIDTH;
     }
 
+    /**
+     * Internal helper for sunset h.
+     *
+     * @param sourceHeight parameter value
+     * @return the resulting value
+     */
     private static double sunsetH(double sourceHeight) {
         return (sourceHeight / SUNSET_PLATFORM_SOURCE_HEIGHT) * GameSettings.HEIGHT;
     }

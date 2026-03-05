@@ -10,7 +10,16 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import game.logic.SoundManager;
 
+/**
+ * Represents the menu panel.
+ */
 public class MenuPanel extends VBox {
+    /**
+     * Creates a new menu panel instance.
+     *
+     * @param onStart parameter value
+     * @param onExit parameter value
+     */
     public MenuPanel(Runnable onStart, Runnable onExit) {
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         setAlignment(Pos.CENTER);
@@ -97,6 +106,13 @@ public class MenuPanel extends VBox {
         getChildren().addAll(textContainer, start, exit);
     }
 
+    /**
+     * Internal helper for style button.
+     *
+     * @param button parameter value
+     * @param top parameter value
+     * @param bottom parameter value
+     */
     private static void styleButton(Button button, String top, String bottom) {
         button.setFocusTraversable(false);
         button.setTextFill(Color.WHITE);

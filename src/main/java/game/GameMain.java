@@ -18,14 +18,43 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
+/**
+ * Represents the game main.
+ */
 public class GameMain extends Application {
 
+    /**
+     * Internal state field for stage.
+     */
     private Stage stage;
+    /**
+     * Internal state field for app scene.
+     */
     private Scene appScene;
+    /**
+     * Internal state field for scaled content.
+     */
     private final Group scaledContent = new Group();
+    /**
+     * Internal state field for responsive root.
+     */
     private final StackPane responsiveRoot = new StackPane(scaledContent);
+    /**
+     * Internal state field for selected map.
+     */
     private GameMap selectedMap = GameMap.defaultMap();
 
+    /**
+     * Creates the application bootstrap instance.
+     */
+    public GameMain() {
+    }
+
+    /**
+     * Starts this component.
+     *
+     * @param primaryStage parameter value
+     */
     @Override
     public void start(Stage primaryStage) {
         this.stage = primaryStage;
@@ -49,17 +78,28 @@ public class GameMain extends Application {
         stage.show();
     }
 
+    /**
+     * Shows the menu.
+     */
     public void showMenu() {
         MenuPanel menu = new MenuPanel(this::showMapSelect, stage::close);
         setContent(menu);
     }
 
+    /**
+     * Shows the map select.
+     */
     public void showMapSelect() {
         MapSelectPanel mapSelect = new MapSelectPanel(this::showWeaponSelect, this::showMenu);
         setContent(mapSelect);
         Platform.runLater(mapSelect::requestFocus);
     }
 
+    /**
+     * Shows the weapon select.
+     *
+     * @param map parameter value
+     */
     public void showWeaponSelect(GameMap map) {
         selectedMap = map == null ? GameMap.defaultMap() : map;
         WeaponSelectPanel weaponSelect = new WeaponSelectPanel(this::startGame, this::showMapSelect);
@@ -67,6 +107,12 @@ public class GameMain extends Application {
         Platform.runLater(weaponSelect::requestFocus);
     }
 
+    /**
+     * Executes start game.
+     *
+     * @param p1Weapon parameter value
+     * @param p2Weapon parameter value
+     */
     public void startGame(Gun p1Weapon, Gun p2Weapon) {
         GamePanel gamePanel = new GamePanel(
                 selectedMap,
@@ -80,6 +126,9 @@ public class GameMain extends Application {
         Platform.runLater(gamePanel::requestFocus);
     }
 
+    /**
+     * Sets internal up responsive root.
+     */
     private void setupResponsiveRoot() {
         responsiveRoot.setStyle("-fx-background-color: black;");
 
@@ -100,10 +149,20 @@ public class GameMain extends Application {
         scaledContent.scaleYProperty().bind(scaleBinding);
     }
 
+    /**
+     * Sets internal content.
+     *
+     * @param content parameter value
+     */
     private void setContent(Parent content) {
         scaledContent.getChildren().setAll(content);
     }
 
+    /**
+     * Internal helper for install window shortcuts.
+     *
+     * @param scene parameter value
+     */
     private void installWindowShortcuts(Scene scene) {
         scene.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
             boolean fullscreenToggle = event.getCode() == KeyCode.F11
@@ -122,6 +181,11 @@ public class GameMain extends Application {
         });
     }
 
+    /**
+     * Launches the application entry point.
+     *
+     * @param args parameter value
+     */
     public static void main(String[] args) {
         launch(args);
     }

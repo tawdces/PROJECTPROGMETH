@@ -17,8 +17,17 @@ import javafx.scene.text.FontWeight;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+/**
+ * Represents the weapon select panel.
+ */
 public class WeaponSelectPanel extends VBox {
 
+    /**
+     * Creates a new weapon select panel instance.
+     *
+     * @param onStart parameter value
+     * @param onBackToMenu parameter value
+     */
     public WeaponSelectPanel(BiConsumer<Gun, Gun> onStart, Runnable onBackToMenu) {
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         setAlignment(Pos.CENTER);
@@ -130,10 +139,25 @@ public class WeaponSelectPanel extends VBox {
         getChildren().addAll(title, selectors, hint, start, back);
     }
 
+    /**
+     * Internal helper for cycle index.
+     *
+     * @param current parameter value
+     * @param direction parameter value
+     * @param size parameter value
+     * @return the resulting value
+     */
     private static int cycleIndex(int current, int direction, int size) {
         return (current + direction + size) % size;
     }
 
+    /**
+     * Internal helper for style button.
+     *
+     * @param button parameter value
+     * @param top parameter value
+     * @param bottom parameter value
+     */
     private static void styleButton(Button button, String top, String bottom) {
         button.setFocusTraversable(false);
         button.setTextFill(Color.WHITE);

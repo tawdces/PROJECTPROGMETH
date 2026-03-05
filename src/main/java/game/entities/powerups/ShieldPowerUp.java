@@ -6,18 +6,38 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
+/**
+ * Represents the shield power up.
+ */
 public class ShieldPowerUp extends PowerUp {
 
+    /**
+     * Creates a new shield power up instance.
+     *
+     * @param x parameter value
+     * @param y parameter value
+     */
     public ShieldPowerUp(double x, double y) {
         super(x, y);
     }
 
+    /**
+     * Applies effect.
+     *
+     * @param player parameter value
+     * @param nowMillis parameter value
+     */
     @Override
     public void applyEffect(Player player, long nowMillis) {
 
         player.applyShield(5000, nowMillis);
     }
 
+    /**
+     * Renders this object.
+     *
+     * @param gc parameter value
+     */
     @Override
     public void render(GraphicsContext gc) {
 

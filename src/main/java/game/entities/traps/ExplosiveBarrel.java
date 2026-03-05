@@ -13,21 +13,58 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Represents the explosive barrel.
+ */
 public class ExplosiveBarrel extends Trap {
+    /**
+     * Internal constant for drop gravity.
+     */
     private static final double DROP_GRAVITY = 1_750.0;
+    /**
+     * Internal constant for drop max speed.
+     */
     private static final double DROP_MAX_SPEED = 820.0;
+    /**
+     * Internal constant for empty image.
+     */
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
+    /**
+     * Internal constant for barrel image.
+     */
     private static final Image BARREL_IMAGE = loadTransparentImage("/images/traps/Barrel.png");
+    /**
+     * Internal state field for landing y.
+     */
     private final double landingY;
+    /**
+     * Internal state field for velocity y.
+     */
     private double velocityY;
+    /**
+     * Internal state field for falling.
+     */
     private boolean falling;
 
+    /**
+     * Creates a new explosive barrel instance.
+     *
+     * @param x parameter value
+     * @param y parameter value
+     */
     public ExplosiveBarrel(double x, double y) {
         super(x, y - 42.0, 32.0, 42.0);
         this.landingY = y - 42.0;
         this.falling = false;
     }
 
+    /**
+     * Creates a new explosive barrel instance.
+     *
+     * @param x parameter value
+     * @param landingTopY parameter value
+     * @param startTopY parameter value
+     */
     public ExplosiveBarrel(double x, double landingTopY, double startTopY) {
         super(x, startTopY - 42.0, 32.0, 42.0);
         this.landingY = landingTopY - 42.0;
@@ -37,12 +74,22 @@ public class ExplosiveBarrel extends Trap {
         }
     }
 
+    /**
+     * Returns the explosion force multiplier.
+     *
+     * @return the explosion force multiplier
+     */
     @Override
     public double getExplosionForceMultiplier() {
 
         return 1.0;
     }
 
+    /**
+     * Updates this object state for the current frame.
+     *
+     * @param deltaSeconds parameter value
+     */
     @Override
     public void update(double deltaSeconds) {
         if (!falling) {
@@ -57,6 +104,11 @@ public class ExplosiveBarrel extends Trap {
         }
     }
 
+    /**
+     * Renders this object.
+     *
+     * @param gc parameter value
+     */
     @Override
     public void render(GraphicsContext gc) {
         if (BARREL_IMAGE != EMPTY_IMAGE) {
@@ -73,6 +125,12 @@ public class ExplosiveBarrel extends Trap {
         }
     }
 
+    /**
+     * Internal helper for load transparent image.
+     *
+     * @param resourcePath parameter value
+     * @return the resulting value
+     */
     private static Image loadTransparentImage(String resourcePath) {
         try {
             Image image;
