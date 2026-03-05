@@ -20,7 +20,6 @@ import java.util.Objects;
 
 public abstract class Player extends GameEntity {
 
-    private static final int MAX_JUMPS = 2;
     private static final double GUN_WIDTH_RATIO = 1.25;
     private static final double GUN_HEIGHT_RATIO = 0.38;
     private static final Image EMPTY_SPRITE = new WritableImage(1, 1);
@@ -38,11 +37,12 @@ public abstract class Player extends GameEntity {
     private double previousY;
     private boolean onGround;
     private long dropThroughUntilMillis;
+    private long coyoteJumpUntilMillis;
     private long gunExpiresAtMillis;
     private Gun fallbackGun = GunRegistry.UNARMED;
     private Gun equippedGun = GunRegistry.UNARMED;
     private long nextActionAtMillis;
-    private int jumpsUsed;
+    private int airJumpsRemaining = GameSettings.MAX_AIR_JUMPS;
     
     
     private long invulnerableUntilMillis;
@@ -84,12 +84,22 @@ public abstract class Player extends GameEntity {
         }
     }
 
-    public void jump() {
-        if (onGround || jumpsUsed < MAX_JUMPS) {
+    public boolean jump(long nowMillis) {
+        boolean canGroundJump = onGround || nowMillis <= coyoteJumpUntilMillis;
+        if (canGroundJump) {
             velocityY = GameSettings.JUMP_VELOCITY;
             onGround = false;
-            jumpsUsed++;
+            coyoteJumpUntilMillis = 0L;
+            airJumpsRemaining = GameSettings.MAX_AIR_JUMPS;
+            return true;
         }
+
+        if (airJumpsRemaining > 0) {
+            velocityY = GameSettings.JUMP_VELOCITY;
+            airJumpsRemaining--;
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -276,6 +286,7 @@ public abstract class Player extends GameEntity {
     }
 
     public void resolveCollisions(List<PlatformSurface> surfaces, long nowMillis) {
+        boolean wasOnGround = onGround;
         onGround = false;
 
         for (PlatformSurface surfaceData : surfaces) {
@@ -294,13 +305,18 @@ public abstract class Player extends GameEntity {
                 y = surface.getMinY() - height;
                 velocityY = 0.0;
                 onGround = true;
-                jumpsUsed = 0;
+                airJumpsRemaining = GameSettings.MAX_AIR_JUMPS;
+                coyoteJumpUntilMillis = nowMillis + GameSettings.COYOTE_TIME_MS;
             } else if (!surfaceData.isOneWay() && previousY >= surface.getMaxY()) {
                 y = surface.getMaxY();
                 if (velocityY < 0) {
                     velocityY = 0.0;
                 }
             }
+        }
+
+        if (!onGround && wasOnGround) {
+            coyoteJumpUntilMillis = nowMillis + GameSettings.COYOTE_TIME_MS;
         }
     }
 
@@ -314,6 +330,7 @@ public abstract class Player extends GameEntity {
         }
         dropThroughUntilMillis = nowMillis + 260;
         onGround = false;
+        coyoteJumpUntilMillis = 0L;
         if (velocityY < 120) {
             velocityY = 120;
         }
@@ -420,7 +437,8 @@ public abstract class Player extends GameEntity {
         velocityY = 0.0;
         onGround = false;
         dropThroughUntilMillis = 0L;
-        jumpsUsed = 0;
+        coyoteJumpUntilMillis = 0L;
+        airJumpsRemaining = GameSettings.MAX_AIR_JUMPS;
         nextActionAtMillis = nowMillis + 180L;
         currentSpeedMultiplier = 1.0;
         speedBoostUntilMillis = 0L;

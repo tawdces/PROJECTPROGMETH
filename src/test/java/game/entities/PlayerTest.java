@@ -46,7 +46,7 @@ class PlayerTest {
         Player p = new TestPlayer(0, 100, 1);
 
         double y0 = p.getBounds().getMinY();
-        p.jump();
+        p.jump(System.currentTimeMillis());
         p.update(0.05);
 
         assertTrue(p.getBounds().getMinY() < y0, "Jump should move player up initially (negative Y velocity)");
