@@ -9,7 +9,9 @@ This README is a quick guide for finding what lives where in this project.
 - Run game: `.\gradlew.bat run`
 - Run tests: `.\gradlew.bat test`
 - Generate Javadoc: `.\gradlew.bat javadoc`
+- Build JAR: `.\gradlew.bat jar`
 - Javadoc output: `build/docs/javadoc/index.html`
+- JAR output: `build/libs/Project-1.0-SNAPSHOT.jar`
 
 ## Root Files (Top Level)
 
@@ -64,9 +66,23 @@ Base path: `build`
 
 - `classes/`: compiled `.class` files
 - `docs/javadoc/`: generated API docs
+- `libs/`: generated `.jar` files
 - `distributions/`: packaged distribution archives
 - `test-results/`: XML test results
 - `reports/` (if generated): Gradle reports
+
+## Submission Artifacts (Tracked In Git)
+
+- JavaDoc home: [build/docs/javadoc/index.html](build/docs/javadoc/index.html)
+- JavaDoc overview: [build/docs/javadoc/overview-summary.html](build/docs/javadoc/overview-summary.html)
+- Runnable artifact: [build/libs/Project-1.0-SNAPSHOT.jar](build/libs/Project-1.0-SNAPSHOT.jar)
+
+Before pushing latest docs/artifacts:
+
+```powershell
+.\gradlew.bat javadoc jar
+git add build/docs/javadoc build/libs/Project-1.0-SNAPSHOT.jar
+```
 
 ## Where To Edit (Common Tasks)
 
@@ -83,4 +99,5 @@ Base path: `build`
 ## Notes
 
 - `build/` content is generated; source of truth is under `src/`.
+- `.gitignore` is configured to keep most `build/` outputs ignored, except `build/docs/javadoc/**` and `build/libs/*.jar` for submission.
 - Diagrams exist as both `.puml` (root) and rendered `.png` (`src/main/resources/puml`).

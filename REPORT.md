@@ -46,6 +46,25 @@
 - [JavaDoc - หน้าแรก](build/docs/javadoc/index.html)
 - [JavaDoc - สรุปแพ็กเกจ](build/docs/javadoc/overview-summary.html)
 
+### 3.3 ไฟล์โปรแกรมแบบ `.jar`
+
+### 3.3.1 คำสั่งสร้างไฟล์ `.jar`
+
+```powershell
+.\gradlew.bat jar
+```
+
+### 3.3.2 ลิงก์ไฟล์ `.jar`
+
+- [Project-1.0-SNAPSHOT.jar](build/libs/Project-1.0-SNAPSHOT.jar)
+
+### 3.4 คำสั่งเตรียมไฟล์ก่อน push
+
+```powershell
+.\gradlew.bat javadoc jar
+git add build/docs/javadoc build/libs/Project-1.0-SNAPSHOT.jar
+```
+
 ## 4) UML Diagram (แยกรูปครบทุกส่วน)
 
 ### 4.1 Config
@@ -92,4 +111,5 @@
 
 - หากเปิดลิงก์ JavaDoc ไม่ได้จากตัว Markdown ให้เปิดไฟล์นี้โดยตรง:
   - `build/docs/javadoc/index.html`
+- ไฟล์รายงานนี้อ้างอิงลิงก์แบบ relative path ดังนั้นต้อง push โฟลเดอร์ `build/docs/javadoc` และไฟล์ `build/libs/Project-1.0-SNAPSHOT.jar` ขึ้น repository ด้วย
 - ควรรัน `.\gradlew.bat javadoc` ใหม่ทุกครั้งหลังแก้โค้ด เพื่อให้เอกสารอัปเดตล่าสุด
