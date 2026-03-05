@@ -62,6 +62,7 @@ public class GamePanel extends StackPane {
     private static final double MAP_RENDER_EXTEND_MARGIN = GameSettings.BLAST_ZONE_MARGIN + 24.0;
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
     private static final String SUNSET_MAP_RESOURCE = "/sunset/background.png";
+    private static final boolean SHOW_PLATFORM_GUIDES = false;
 
     private final Runnable onRematch;
     private final Runnable onBackToMenu;
@@ -600,7 +601,9 @@ public class GamePanel extends StackPane {
         gc.translate((-cameraX + shakeX) * cameraZoom, (-cameraY + shakeY) * cameraZoom);
         gc.scale(cameraZoom, cameraZoom);
         renderExtendedMap();
-        renderPlatformGuides();
+        if (SHOW_PLATFORM_GUIDES) {
+            renderPlatformGuides();
+        }
 
         List<Renderable> renderables = new ArrayList<>();
         renderables.add(p1);
@@ -693,9 +696,6 @@ public class GamePanel extends StackPane {
     }
 
     private void renderPlatformGuides() {
-        if (sunsetMap) {
-            return;
-        }
         gc.setFill(Color.web("#2f7cff", 0.45));
         gc.setStroke(Color.web("#0f3fa1", 0.85));
         gc.setLineWidth(1.8);
@@ -1098,43 +1098,41 @@ public class GamePanel extends StackPane {
     private List<PlatformSurface> createSurfacesForMap(String mapResourcePath) {
         if (SUNSET_MAP_RESOURCE.equals(mapResourcePath)) {
             return List.of(
-                    new PlatformSurface(sunX(542), sunY(6), sunW(814), sunH(24), true),
-                    new PlatformSurface(sunX(309), sunY(265), sunW(1280), sunH(24), true),
-                    new PlatformSurface(sunX(542), sunY(524), sunW(814), sunH(24), true),
-                    new PlatformSurface(sunX(12), sunY(525), sunW(273), sunH(24), true),
-                    new PlatformSurface(sunX(1613), sunY(525), sunW(273), sunH(24), true),
-                    new PlatformSurface(sunX(703), sunY(785), sunW(516), sunH(22), true)
+                    new PlatformSurface(sunX(542), sunY(50), sunW(814), sunH(24), true),
+                    new PlatformSurface(sunX(309), sunY(305), sunW(1280), sunH(24), true),
+                    new PlatformSurface(sunX(542), sunY(560), sunW(814), sunH(24), true),
+                    new PlatformSurface(sunX(12), sunY(560), sunW(273), sunH(24), true),
+                    new PlatformSurface(sunX(1613), sunY(560), sunW(273), sunH(24), true),
+                    new PlatformSurface(sunX(703), sunY(830), sunW(516), sunH(22), true)
             );
         }
 
         if ("/Map2.png".equals(mapResourcePath)) {
             return List.of(
-                    new PlatformSurface(sx(67), sy(72), sw(132), sh(12), true),
-                    new PlatformSurface(sx(55), sy(112), sw(228), sh(12), true),
-                    new PlatformSurface(sx(24), sy(160), sw(380), sh(13), true),
-                    new PlatformSurface(sx(0), sy(210), sw(540), sh(13), true),
-                    new PlatformSurface(sx(0), sy(264), sw(598), sh(14), true)
+                    new PlatformSurface(sx(60), sy(70), sw(160), sh(12), true),
+                    new PlatformSurface(sx(24), sy(145), sw(315), sh(13), true),
+                    new PlatformSurface(sx(0), sy(220), sw(490), sh(13), true),
+                    new PlatformSurface(sx(-15), sy(300), sw(550), sh(14), true)
             );
         }
 
         if ("/Map3.png".equals(mapResourcePath)) {
             return List.of(
-                    new PlatformSurface(sx(78), sy(118), sw(66), sh(10), true),
-                    new PlatformSurface(sx(454), sy(118), sw(66), sh(10), true),
-                    new PlatformSurface(sx(18), sy(163), sw(120), sh(12), true),
-                    new PlatformSurface(sx(462), sy(163), sw(120), sh(12), true),
-                    new PlatformSurface(sx(198), sy(198), sw(198), sh(12), true),
-                    new PlatformSurface(sx(0), sy(286), sw(598), sh(16), true)
+                    new PlatformSurface(sx(-30), sy(150), sw(120), sh(10), true),
+                    new PlatformSurface(sx(505), sy(150), sw(120), sh(10), true),
+                    new PlatformSurface(sx(-45), sy(230), sw(120), sh(12), true),
+                    new PlatformSurface(sx(500), sy(230), sw(120), sh(12), true),
+                    new PlatformSurface(sx(-30), sy(315), sw(650), sh(16), true)
             );
         }
 
         return List.of(
-                new PlatformSurface(sx(106), sy(146), sw(148), sh(12), true),
-                new PlatformSurface(sx(309), sy(146), sw(145), sh(12), true),
-                new PlatformSurface(sx(62), sy(214), sw(493), sh(14), true),
-                new PlatformSurface(sx(107), sy(285), sw(88), sh(12), true),
-                new PlatformSurface(sx(400), sy(285), sw(89), sh(12), true),
-                new PlatformSurface(sx(85), sy(327), sw(434), sh(14), true)
+                new PlatformSurface(sx(120), sy(135), sw(148), sh(12), true),
+                new PlatformSurface(sx(320), sy(135), sw(145), sh(12), true),
+                new PlatformSurface(sx(-30), sy(214), sw(660), sh(14), true),
+                new PlatformSurface(sx(70), sy(290), sw(88), sh(12), true),
+                new PlatformSurface(sx(425), sy(290), sw(89), sh(12), true),
+                new PlatformSurface(sx(70), sy(375), sw(450), sh(14), true)
         );
     }
 
