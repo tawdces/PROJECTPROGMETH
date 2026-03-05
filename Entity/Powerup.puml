@@ -1,0 +1,26 @@
+@startuml
+class game.entities.powerups.SpeedPowerUp {
++ <<Create>> SpeedPowerUp(double,double)
++ void applyEffect(Player,long)
++ void render(GraphicsContext)
+}
+
+class game.entities.powerups.ShieldPowerUp {
++ <<Create>> ShieldPowerUp(double,double)
++ void applyEffect(Player,long)
++ void render(GraphicsContext)
+}
+
+abstract class game.entities.powerups.PowerUp {
+# <<Create>> PowerUp(double,double)
++ void update(double)
++ {abstract}void applyEffect(Player,long)
++ {abstract}void render(GraphicsContext)
+}
+
+
+
+game.entities.powerups.PowerUp <|-- game.entities.powerups.SpeedPowerUp
+game.entities.powerups.PowerUp <|-- game.entities.powerups.ShieldPowerUp
+game.entities.GameEntity <|-- game.entities.powerups.PowerUp
+@enduml

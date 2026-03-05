@@ -1,0 +1,126 @@
+@startuml
+interface game.logic.Updatable {
+~ void update(double)
+}
+
+interface game.logic.Collidable {
+~ Rectangle2D getBounds()
+}
+
+class game.logic.MatchTimerService {
+- AtomicLong elapsedMillis
+- ScheduledExecutorService scheduler
+- long startNanos
++ void start()
++ long getElapsedMillis()
++ double getElapsedSeconds()
++ void stop()
+}
+
+
+interface game.logic.Renderable {
+~ void render(GraphicsContext)
+}
+
+class game.logic.SpriteFrame {
+- double x
+- double y
+- double width
+- double height
++ <<Create>> SpriteFrame(double,double,double,double)
++ double width()
++ double height()
++ double y()
++ double x()
+}
+
+
+class game.logic.SoundManager {
+- {static} SoundManager INSTANCE
+- {static} double MENU_BGM_BASE_VOLUME
+- {static} double GAME_BGM_BASE_VOLUME
+- {static} double MIN_VOLUME
+- {static} double MAX_VOLUME
+- {static} String MENU_BGM_RESOURCE
+- Map<String,AudioClip> effects
+- MediaPlayer bgmPlayer
+- Random random
+- double musicVolume
+- double effectVolume
+- double currentBgmBaseVolume
+- BgmMode currentBgmMode
+- String currentBgmResource
+- List<String> bgmFiles
+- <<Create>> SoundManager()
++ {static} SoundManager getInstance()
+- void loadEffect(String,String)
++ void playEffect(String)
++ void playRandomBgm()
++ void playMenuBgm()
++ void stopBgm()
++ double getMusicVolume()
++ void setMusicVolume(double)
++ double getEffectVolume()
++ void setEffectVolume(double)
++ double getMasterVolume()
++ void setMasterVolume(double)
+- void applyBgmVolume()
+- {static} double clampVolume(double)
+}
+
+
+enum game.logic.BgmMode {
++  NONE
++  MENU
++  GAME
+}
+
+class game.logic.SharedMultiplayerCamera {
+- {static} double EPSILON
+- double viewportWidth
+- double viewportHeight
+- double worldMinX
+- double worldMaxX
+- double worldMinY
+- double worldMaxY
+- double minZoom
+- double maxZoom
+- boolean dynamicZoom
+- double fixedZoom
+- double paddingX
+- double paddingY
+- double followSpeed
+- double centerX
+- double centerY
+- double zoom
+- boolean initialized
++ <<Create>> SharedMultiplayerCamera(double,double,double,double,double,double,double,double,boolean,double,double,double,double)
++ <<Create>> SharedMultiplayerCamera(double,double,double,double,double,double,double,double,double,double,double)
++ void update(double,Collection<Rectangle2D>)
++ void snapToTargets(Collection<Rectangle2D>)
++ double getCameraX()
++ double getCameraY()
++ double getZoom()
++ double getViewWidth()
++ double getViewHeight()
+- CameraTarget computeTarget(Collection<Rectangle2D>)
+- {static} double smooth(double,double,double)
+- {static} double clamp(double,double,double)
+}
+
+
+class game.logic.SharedMultiplayerCamera$CameraTarget {
+- double centerX
+- double centerY
+- double zoom
+- <<Create>> CameraTarget(double,double,double)
++ double zoom()
++ double centerX()
++ double centerY()
+}
+
+
+
+
+game.logic.SharedMultiplayerCamera +.. game.logic.SharedMultiplayerCamera$CameraTarget
+@enduml

@@ -1,0 +1,23 @@
+@startuml
+class game.GameMain {
+- Stage stage
+- Scene appScene
+- Group scaledContent
+- StackPane responsiveRoot
+- GameMap selectedMap
++ void start(Stage)
++ void showMenu()
++ void showMapSelect()
++ void showWeaponSelect(GameMap)
++ void startGame(Gun,Gun)
+- void setupResponsiveRoot()
+- void setContent(Parent)
+- void installWindowShortcuts(Scene)
++ {static} void main(String[])
+}
+
+
+
+
+javafx.application.Application <|-- game.GameMain
+@enduml

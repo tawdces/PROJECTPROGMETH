@@ -1,0 +1,60 @@
+@startuml
+class game.config.GameSettings {
++ {static} double WIDTH
++ {static} double HEIGHT
++ {static} double GROUND_Y
++ {static} double PLAYER_WIDTH
++ {static} double PLAYER_HEIGHT
++ {static} double BULLET_SIZE
++ {static} double BOX_SIZE
++ {static} double MOVE_SPEED
++ {static} double KNOCKBACK_DAMPING
++ {static} double MELEE_RANGE
++ {static} double GRAVITY
++ {static} double JUMP_VELOCITY
++ {static} int MAX_AIR_JUMPS
++ {static} long COYOTE_TIME_MS
++ {static} long JUMP_INPUT_BUFFER_MS
++ {static} long DROP_INPUT_BUFFER_MS
++ {static} boolean CAMERA_DYNAMIC_ZOOM
++ {static} double CAMERA_FIXED_ZOOM
++ {static} double CAMERA_MIN_ZOOM
++ {static} double CAMERA_MAX_ZOOM
++ {static} double CAMERA_PADDING_X
++ {static} double CAMERA_PADDING_Y
++ {static} double CAMERA_FOLLOW_SPEED
++ {static} double WORLD_FLOOR_Y
++ {static} double BLAST_ZONE_MARGIN
++ {static} double MELEE_FORCE
++ {static} double MELEE_VERTICAL_FORCE
++ {static} double BULLET_FORCE
++ {static} double BULLET_VERTICAL_FORCE
++ {static} double BULLET_SPEED
++ {static} double SHOTGUN_PELLET_RANGE
++ {static} double SHOOT_RECOIL_BASE
++ {static} double SHOOT_RECOIL_PER_BULLET
++ {static} double SHOOT_RECOIL_VERTICAL_FORCE
++ {static} long GUN_DURATION_MS
++ {static} long FIRST_DROP_DELAY_MS
++ {static} long NEXT_DROP_INTERVAL_MS
++ {static} long SHOOT_COOLDOWN_MS
++ {static} long MELEE_COOLDOWN_MS
++ {static} long RESPAWN_INVULNERABILITY_MS
++ {static} int STOCKS_PER_ROUND
++ {static} int ROUND_WINS_TO_MATCH
++ {static} long ROUND_END_DELAY_MS
++ {static} long ROUND_START_COUNTDOWN_MS
++ {static} long SCREEN_SHAKE_DURATION_MS
++ {static} double SCREEN_SHAKE_STRENGTH
++ {static} double SCREEN_SHAKE_MAX_STRENGTH
++ {static} double BARREL_SIZE
++ {static} double EXPLOSION_RADIUS
++ {static} double EXPLOSION_FORCE_BASE
++ {static} double EXPLOSION_VERTICAL_FORCE
++ {static} long TRAP_DROP_INTERVAL_MS
++ {static} long POWERUP_DROP_INTERVAL_MS
+- <<Create>> GameSettings()
+}
+
+
+@enduml

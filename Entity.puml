@@ -1,0 +1,224 @@
+@startuml
+abstract class game.entities.traps.Trap {
+# <<Create>> Trap(double,double,double,double)
++ void update(double)
++ {abstract}double getExplosionForceMultiplier()
+}
+
+class game.entities.powerups.SpeedPowerUp {
++ <<Create>> SpeedPowerUp(double,double)
++ void applyEffect(Player,long)
++ void render(GraphicsContext)
+}
+
+abstract class game.entities.Player {
+- {static} double GUN_WIDTH_RATIO
+- {static} double GUN_HEIGHT_RATIO
+- {static} double GUN_RENDER_SCALE
+- {static} long SPEED_TRAIL_SAMPLE_INTERVAL_MS
+- {static} long SPEED_TRAIL_LIFETIME_MS
+- {static} int SPEED_TRAIL_MAX_SAMPLES
+- {static} double SPEED_TRAIL_MIN_MOVEMENT_SQ
+- {static} double SPEED_TRAIL_BRIGHTNESS_SHIFT
+- String name
+- Color color
+- int facingDirection
+- Image spriteSheet
+- List<SpriteFrame> spriteFrames
+- double horizontalInput
+- double knockbackVX
+- double velocityY
+- double previousX
+- double previousY
+- boolean onGround
+- long dropThroughUntilMillis
+- long coyoteJumpUntilMillis
+- long gunExpiresAtMillis
+- Gun fallbackGun
+- Gun equippedGun
+- long nextActionAtMillis
+- int airJumpsRemaining
+- long invulnerableUntilMillis
+- double currentSpeedMultiplier
+- long speedBoostUntilMillis
+- Deque<TrailSample> speedTrail
+- long lastTrailSampleAtMillis
+- double lastTrailSampleX
+- double lastTrailSampleY
+- double stepDistance
+- {static} double STEP_INTERVAL
+# <<Create>> Player(double,double,String,Color,int,String,List<SpriteFrame>)
++ void setHorizontalInput(double)
++ boolean jump(long)
++ JumpResult jumpWithResult(long)
++ void update(double)
++ void render(GraphicsContext)
+- void drawPlayerBody(GraphicsContext,double,double,double,double,int,double,double)
+- void renderSpeedTrail(GraphicsContext,long,double,double)
+- void updateSpeedTrail(long)
+- void addTrailSample(double,double,long)
+- void pruneExpiredTrail(long)
+- void clearSpeedTrail()
+- SpriteFrame selectFrame()
++ Rectangle2D getMeleeHitbox()
++ boolean isMeleeHit(Player)
++ void applyKnockback(double,double)
++ void applyShield(long,long)
++ void applySpeedBoost(double,long,long)
++ void resolveCollisions(List<PlatformSurface>,long)
++ boolean isOnGround()
++ void requestDropThrough(long)
++ void clampX(double,double)
++ List<Bullet> shoot()
++ int getFacingDirection()
++ boolean hasGun(long)
++ Gun getEquippedGun(long)
++ void equipGun(Gun,long)
++ void equipPermanentGun(Gun)
++ long getShootCooldownMillis(long)
++ boolean canAction(long)
++ void setActionCooldown(long,long)
++ boolean isInvulnerable(long)
++ boolean isSpeedBoosted(long)
+- GunPose computeGunPose(Gun)
++ void respawnFromSky(double,double,long)
+}
+
+
+enum game.entities.JumpResult {
++  NONE
++  GROUND
++  AIR
+}
+
+class game.entities.Player$GunPose {
+- double x
+- double y
+- double width
+- double height
+- double muzzleX
+- double muzzleY
+- <<Create>> GunPose(double,double,double,double,double,double)
++ double width()
++ double height()
++ double y()
++ double muzzleY()
++ double muzzleX()
++ double x()
+}
+
+
+class game.entities.Player$TrailSample {
+- double x
+- double y
+- int facingDirection
+- long createdAtMillis
+- <<Create>> TrailSample(double,double,int,long)
++ int facingDirection()
++ double y()
++ double x()
++ long createdAtMillis()
+}
+
+
+class game.entities.Bullet {
+- {static} Image EMPTY_BULLET_SPRITE
+- {static} Image BULLET_MOVE_IMAGE
+- double velocityX
+- double velocityY
+- double impactForceX
+- double impactForceY
+- Player owner
+- double maxTravelDistance
+- double traveledDistance
++ <<Create>> Bullet(double,double,double,double,double,double,Player)
++ <<Create>> Bullet(double,double,double,double,double,double,Player,double)
++ void update(double)
++ void render(GraphicsContext)
++ Player getOwner()
++ double getImpactForceX()
++ double getImpactForceY()
+- {static} double colorDistance(Color,Color)
+}
+
+
+class game.entities.PlayerOne {
++ <<Create>> PlayerOne(double,double)
++ <<Create>> PlayerOne(double,double,String,List<SpriteFrame>)
+}
+
+class game.entities.traps.Landmine {
+- long spawnTime
+- double explosionMultiplier
++ <<Create>> Landmine(double,double)
++ double getExplosionForceMultiplier()
++ void render(GraphicsContext)
+}
+
+
+class game.entities.traps.ExplosiveBarrel {
+- {static} double DROP_GRAVITY
+- {static} double DROP_MAX_SPEED
+- {static} Image EMPTY_IMAGE
+- {static} Image BARREL_IMAGE
+- double landingY
+- double velocityY
+- boolean falling
++ <<Create>> ExplosiveBarrel(double,double)
++ <<Create>> ExplosiveBarrel(double,double,double)
++ double getExplosionForceMultiplier()
++ void update(double)
++ void render(GraphicsContext)
+- {static} Image loadTransparentImage(String)
+}
+
+
+abstract class game.entities.GameEntity {
+# double x
+# double y
+# double width
+# double height
+- boolean active
+# <<Create>> GameEntity(double,double,double,double)
++ Rectangle2D getBounds()
++ boolean isActive()
++ void deactivate()
+}
+
+
+class game.entities.powerups.ShieldPowerUp {
++ <<Create>> ShieldPowerUp(double,double)
++ void applyEffect(Player,long)
++ void render(GraphicsContext)
+}
+
+abstract class game.entities.powerups.PowerUp {
+# <<Create>> PowerUp(double,double)
++ void update(double)
++ {abstract}void applyEffect(Player,long)
++ {abstract}void render(GraphicsContext)
+}
+
+class game.entities.PlayerTwo {
++ <<Create>> PlayerTwo(double,double)
++ <<Create>> PlayerTwo(double,double,String,List<SpriteFrame>)
+}
+
+
+
+game.entities.GameEntity <|-- game.entities.traps.Trap
+game.entities.powerups.PowerUp <|-- game.entities.powerups.SpeedPowerUp
+game.entities.GameEntity <|-- game.entities.Player
+game.entities.Player +.. game.entities.Player$GunPose
+game.entities.Player +.. game.entities.Player$TrailSample
+game.entities.GameEntity <|-- game.entities.Bullet
+game.entities.Player <|-- game.entities.PlayerOne
+game.entities.traps.Trap <|-- game.entities.traps.Landmine
+game.entities.traps.Trap <|-- game.entities.traps.ExplosiveBarrel
+game.logic.Updatable <|.. game.entities.GameEntity
+game.logic.Renderable <|.. game.entities.GameEntity
+game.logic.Collidable <|.. game.entities.GameEntity
+game.entities.powerups.PowerUp <|-- game.entities.powerups.ShieldPowerUp
+game.entities.GameEntity <|-- game.entities.powerups.PowerUp
+game.entities.Player <|-- game.entities.PlayerTwo
+@enduml

@@ -1,0 +1,244 @@
+@startuml
+class game.ui.WeaponDrop {
+- {static} double DROP_GRAVITY
+- {static} double DROP_MAX_SPEED
+- double x
+- Gun gun
+- double landingY
+- double y
+- double velocityY
+- boolean landed
+~ <<Create>> WeaponDrop(double,double,Gun)
+~ <<Create>> WeaponDrop(double,double,double,Gun)
+~ double x()
+~ double y()
+~ Gun gun()
+~ boolean isLanded()
+~ void update(double)
+~ Rectangle2D bounds()
+}
+
+
+class game.ui.PauseOverlay {
+- {static} double VOLUME_PERCENT_MIN
+- {static} double VOLUME_PERCENT_MAX
+- {static} double PAUSE_AUDIO_LABEL_WIDTH
+- Button pauseButton
+- VBox pauseModal
+~ <<Create>> PauseOverlay(StackPane,Runnable,Runnable,Runnable,Runnable)
+~ void showPaused(boolean)
+~ void hideAll()
+- {static} void styleMenuButton(Button,String,String)
+- {static} Slider createPauseVolumeSlider(double)
+- {static} void stylePauseAudioLabel(Label)
+- {static} String volumeText(String,double)
+}
+
+
+class game.ui.MatchDropCoordinator {
+- {static} double SKY_DROP_MIN_HEIGHT
+- {static} double SKY_DROP_MAX_HEIGHT
+- List<PlatformSurface> worldSurfaces
+- Random random
+- List<WeaponDrop> weaponDrops
+- List<Trap> traps
+- List<PowerUp> powerUps
+- long nextGunDropAtMillis
+- long nextTrapDropAtMillis
+- long nextPowerUpDropAtMillis
+- long lastDropUpdateAtMillis
+~ <<Create>> MatchDropCoordinator(List<PlatformSurface>,Random)
+~ List<WeaponDrop> weaponDrops()
+~ List<Trap> traps()
+~ List<PowerUp> powerUps()
+~ long nextGunDropAtMillis()
+~ void clearRoundItems()
+~ void prepareRound(long)
+~ void updateDrops(long)
+~ void renderWeaponDrops(GraphicsContext)
+- void spawnTraps()
+- void updatePowerUpDrops(long)
+- void updateTrapDrops(long)
+- void updateWeaponDrops(long)
+- WeaponDrop createWeaponDrop()
+- void updateActiveFallingDrops(double)
+- double randomSkyTopY()
+- double computeDropDeltaSeconds(long)
+}
+
+
+class game.ui.GameImageLoader {
+- {static} Image EMPTY_IMAGE
+- <<Create>> GameImageLoader()
+~ {static} Image emptyImage()
+~ {static} Image loadTransparentImage(Class<?>,String)
+- {static} Image loadImageInternal(Class<?>,String,boolean)
+- {static} Image makeBackgroundTransparent(Image)
+- {static} double colorDistance(Color,Color)
+}
+
+
+class game.ui.MapSelectPanel {
++ {static} int mapWidth
++ {static} int mapHeight
+- {static} List<GameMap> MAPS
++ {static} List<String> MAP_RESOURCES
++ <<Create>> MapSelectPanel(Consumer<GameMap>,Runnable)
+- {static} Image loadMap(int)
+- {static} String labelFor(int)
+- {static} int cycleIndex(int,int,int)
+- {static} void styleButton(Button,String,String)
+}
+
+
+class game.ui.GamePanel {
+- {static} double SKY_RESPAWN_Y_MIN
+- {static} double SKY_RESPAWN_Y_MAX
+- {static} double SIDE_RESPAWN_MARGIN
+- {static} double RESPAWN_CENTER_SPREAD
+- {static} double RESPAWN_PAIR_OFFSET
+- {static} double RESPAWN_PAIR_JITTER
+- {static} double MAP_RENDER_EXTEND_MARGIN
+- {static} double DOUBLE_JUMP_EFFECT_SIZE
+- {static} long DOUBLE_JUMP_EFFECT_LIFE_MS
+- {static} double DOUBLE_JUMP_EFFECT_START_SCALE
+- {static} double DOUBLE_JUMP_EFFECT_END_SCALE
+- {static} double DOUBLE_JUMP_EFFECT_MAX_ALPHA
+- {static} Image EMPTY_IMAGE
+- {static} boolean SHOW_PLATFORM_GUIDES
+- Runnable onRematch
+- Runnable onBackToMenu
+- Canvas canvas
+- GraphicsContext gc
+- GameMap selectedMap
+- Image bulletHitImage
+- Image bloodImage
+- Image explosionImage
+- PlayerOne p1
+- PlayerTwo p2
+- List<Bullet> bullets
+- MatchDropCoordinator dropCoordinator
+- List<WeaponDrop> weaponDrops
+- List<Trap> traps
+- List<PowerUp> powerUps
+- List<GameEffect> hitEffects
+- List<PlatformSurface> worldSurfaces
+- SharedMultiplayerCamera sharedCamera
+- List<Player> trackedPlayers
+- List<Rectangle2D> trackedPlayerBounds
+- Set<KeyCode> pressedKeys
+- long p1JumpBufferedUntilMillis
+- long p2JumpBufferedUntilMillis
+- long p1DropBufferedUntilMillis
+- long p2DropBufferedUntilMillis
+- Random random
+- PauseOverlay pauseOverlay
+- boolean gameOver
+- boolean paused
+- long lastFrameNanos
+- int p1Stocks
+- int p2Stocks
+- int p1RoundWins
+- int p2RoundWins
+- int roundNumber
+- double cameraX
+- double cameraY
+- double cameraZoom
+- long freezeUntilMillis
+- long pendingNextRoundAtMillis
+- String centerBannerText
+- long centerBannerUntilMillis
+- long shakeUntilMillis
+- double shakeStrength
+- AnimationTimer gameLoop
++ <<Create>> GamePanel(GameMap,Gun,Gun,Runnable,Runnable)
++ void bindInput(Scene)
+- void registerTrackedPlayer(Player)
+- boolean isCombatLocked(long)
+- void updateGame(double)
+- void updateMovement()
+- void updateActions(long)
+- void processBufferedVerticalInputs(long)
+- double axis(boolean,boolean)
+- void checkLandmineTriggers(long)
+- void performAction(Player,Player)
+- void handleBulletHits(long)
+- void triggerExplosion(Trap,long)
+- void applyExplosionForce(Player,double,double,long,double)
+- boolean canDropToLowerPlatform(Player)
+- void handleBlastZoneDeaths(long)
+- void concludeRound(String,long)
+- void queueNextRound(long,String)
+- boolean isOutOfMap(Player)
+- void renderGame()
+- void renderDoubleJumpEffect(GameEffect,long)
+- void renderExtendedMap()
+- void renderBlastZoneWarning()
+- void updateCamera(double)
+- void renderPlatformGuides()
+- void renderHud()
+- void drawHudFrame(double,double,double,double,Color,Color)
+- void drawStocks(double,double,int,Color,boolean)
+- void renderCenterBanner(long)
+- void showCenterBanner(String,long)
+- void finishGame(String)
+- void respawnPlayerFromSky(Player,long)
+- void respawnPlayerFromSky(Player,long,double,double)
+- void spawnRoundPlayers(long)
+- void prepareRound(int)
+- {static} void styleMenuButton(Button,String,String)
+- void togglePause()
+- void setPaused(boolean)
+- void shutdownGameSystems()
+- void restartMatch()
+- void backToMenu()
+- void addEffect(String,Image,double,double,double,double,long)
+- void spawnDoubleJumpEffect(Player)
+- void removeExpiredEffects(long)
+- void triggerCameraShake(double,long)
+- void handlePowerUpPickups(long)
+- void handleWeaponPickups(long)
+- boolean tryPickup(WeaponDrop,Player,long)
+}
+
+
+class game.ui.WeaponSelectPanel {
++ <<Create>> WeaponSelectPanel(BiConsumer<Gun,Gun>,Runnable)
+- {static} int cycleIndex(int,int,int)
+- {static} void styleButton(Button,String,String)
+}
+
+class game.ui.MenuPanel {
++ <<Create>> MenuPanel(Runnable,Runnable)
+- {static} void styleButton(Button,String,String)
+}
+
+class game.ui.GameEffect {
+- String type
+- Image image
+- double x
+- double y
+- double width
+- double height
+- long expiresAt
+- long totalLife
+~ <<Create>> GameEffect(String,Image,double,double,double,double,long,long)
+~ boolean isExpired(long)
++ String type()
++ Image image()
++ double width()
++ double height()
++ long totalLife()
++ double y()
++ double x()
++ long expiresAt()
+}
+
+
+
+
+javafx.scene.layout.VBox <|-- game.ui.MapSelectPanel
+javafx.scene.layout.StackPane <|-- game.ui.GamePanel
+javafx.scene.layout.VBox <|-- game.ui.WeaponSelectPanel
+javafx.scene.layout.VBox <|-- game.ui.MenuPanel
+@enduml

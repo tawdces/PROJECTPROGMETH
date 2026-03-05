@@ -1,0 +1,71 @@
+@startuml
+class game.map.PlatformSurface {
+- Rectangle2D bounds
+- boolean oneWay
++ <<Create>> PlatformSurface(double,double,double,double,boolean)
++ Rectangle2D getBounds()
++ boolean isOneWay()
+}
+
+
+class game.map.GameMap {
+- {static} Image EMPTY_IMAGE
+- {static} double MAP_SOURCE_WIDTH
+- {static} double MAP_SOURCE_HEIGHT
+- {static} double SUNSET_PLATFORM_SOURCE_WIDTH
+- {static} double SUNSET_PLATFORM_SOURCE_HEIGHT
+- {static} double DEFAULT_P1_SPAWN_X
+- {static} double DEFAULT_P2_SPAWN_X
+- {static} double DEFAULT_SPAWN_GROUND_Y
+- {static} List<GameMap> AVAILABLE_MAPS
+- String resourcePath
+- String previewResourcePath
+- String label
+- Color backgroundColor
+- boolean sunsetStyle
+- List<PlatformSurface> surfaces
+- double playerOneSpawnX
+- double playerTwoSpawnX
+- double spawnGroundY
+- boolean assetsLoaded
+- Image baseImage
+- Image sunsetBackgroundImage
+- Image sunsetSunImage
+- Image sunsetMountainImage
+- Image sunsetCityFarImage
+- Image sunsetCityMidImage
+- Image sunsetCityNearImage
+- Image sunsetPlatformImage
+- <<Create>> GameMap(String,String,String,Color,boolean,List<PlatformSurface>)
++ {static} List<GameMap> availableMaps()
++ {static} GameMap defaultMap()
++ {static} GameMap fromResource(String)
++ String resourcePath()
++ String previewResourcePath()
++ String label()
++ Color backgroundColor()
++ List<PlatformSurface> surfaces()
++ double playerOneSpawnX()
++ double playerTwoSpawnX()
++ double spawnGroundY()
++ void render(GraphicsContext,double,double,double)
+- void renderSunsetParallax(GraphicsContext,double,double,double)
+- {static} void drawParallaxLayer(GraphicsContext,Image,double,double,double,double,double,double,double,double)
+- void ensureAssetsLoaded()
+- {static} Image loadImage(String)
+- {static} List<PlatformSurface> map1Surfaces()
+- {static} List<PlatformSurface> map2Surfaces()
+- {static} List<PlatformSurface> map3Surfaces()
+- {static} List<PlatformSurface> sunsetSurfaces()
+- {static} double classicX(double)
+- {static} double classicY(double)
+- {static} double classicW(double)
+- {static} double classicH(double)
+- {static} double sunsetX(double)
+- {static} double sunsetY(double)
+- {static} double sunsetW(double)
+- {static} double sunsetH(double)
+}
+
+
+@enduml
