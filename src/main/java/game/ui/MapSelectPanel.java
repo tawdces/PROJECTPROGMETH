@@ -22,7 +22,20 @@ import java.nio.file.Paths;
 
 public class MapSelectPanel extends VBox {
 
-    public static final List<String> MAP_RESOURCES = List.of("/Map1.png", "/Map2.png", "/Map3.png");
+    public static final String SUNSET_MAP_RESOURCE = "/sunset/background.png";
+    private static final String SUNSET_PREVIEW_RESOURCE = "/sunset/platform.png";
+    public static final List<String> MAP_RESOURCES = List.of(
+            "/Map1.png",
+            "/Map2.png",
+            "/Map3.png",
+            SUNSET_MAP_RESOURCE
+    );
+    private static final List<String> MAP_LABELS = List.of(
+            "Map 1",
+            "Map 2",
+            "Map 3",
+            "Sunset"
+    );
 
     public MapSelectPanel(Consumer<String> onMapSelected, Runnable onBackToMenu) {
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
@@ -109,20 +122,22 @@ public class MapSelectPanel extends VBox {
 
     private static Image loadMap(int index) {
         String resource = MAP_RESOURCES.get(index);
-        var url = MapSelectPanel.class.getResource(resource);
+        String previewResource = SUNSET_MAP_RESOURCE.equals(resource) ? SUNSET_PREVIEW_RESOURCE : resource;
+
+        var url = MapSelectPanel.class.getResource(previewResource);
         if (url != null) {
             return new Image(url.toExternalForm());
         }
 
-        Path fallback = Paths.get("src", "main", "resources", resource.replaceFirst("^/", ""));
+        Path fallback = Paths.get("src", "main", "resources", previewResource.replaceFirst("^/", ""));
         if (Files.exists(fallback)) {
             return new Image(fallback.toUri().toString());
         }
-        throw new IllegalArgumentException("Map resource not found: " + resource);
+        throw new IllegalArgumentException("Map resource not found: " + previewResource);
     }
 
     private static String labelFor(int index) {
-        return "Map " + (index + 1);
+        return MAP_LABELS.get(index);
     }
 
     private static int cycleIndex(int current, int direction, int size) {

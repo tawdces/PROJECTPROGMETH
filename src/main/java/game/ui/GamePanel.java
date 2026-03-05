@@ -3,6 +3,7 @@ package game.ui;
 import game.config.GameSettings;
 import game.core.PlatformSurface;
 import game.core.Renderable;
+import game.core.SharedMultiplayerCamera;
 import game.core.SoundManager;
 import game.core.Updatable;
 import game.entities.Bullet;
@@ -51,13 +52,9 @@ public class GamePanel extends StackPane {
     private static final double SKY_RESPAWN_Y_MIN = 24.0;
     private static final double SKY_RESPAWN_Y_MAX = 160.0;
     private static final double SIDE_RESPAWN_MARGIN = 48.0;
-    private static final double CAMERA_MIN_ZOOM = 0.92;
-    private static final double CAMERA_MAX_ZOOM = 1.9;
-    private static final double CAMERA_MARGIN_X = 260.0;
-    private static final double CAMERA_MARGIN_Y = 180.0;
-    private static final double CAMERA_LERP_SPEED = 8.0;
     private static final double MAP_RENDER_EXTEND_MARGIN = GameSettings.BLAST_ZONE_MARGIN + 24.0;
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
+    private static final String SUNSET_MAP_RESOURCE = "/sunset/background.png";
 
     private final Runnable onRematch;
     private final Runnable onBackToMenu;
@@ -65,12 +62,22 @@ public class GamePanel extends StackPane {
     private final Canvas canvas = new Canvas(GameSettings.WIDTH, GameSettings.HEIGHT);
     private final GraphicsContext gc = canvas.getGraphicsContext2D();
     private final Image selectedMapImage;
+    private final boolean sunsetMap;
+    private final Image sunsetBackgroundImage;
+    private final Image sunsetSunImage;
+    private final Image sunsetMountainImage;
+    private final Image sunsetCityFarImage;
+    private final Image sunsetCityMidImage;
+    private final Image sunsetCityNearImage;
+    private final Image sunsetPlatformImage;
     private final Image bulletHitImage = loadTransparentImage("/Bullet_hit.png");
     private final Image bloodImage = loadTransparentImage("/Blood.png");
     private final Image explosionImage = loadTransparentImage("/explosion.png");
 
     private static final double MAP_SOURCE_WIDTH = 598.0;
     private static final double MAP_SOURCE_HEIGHT = 348.0;
+    private static final double SUNSET_PLATFORM_SOURCE_WIDTH = 1898.0;
+    private static final double SUNSET_PLATFORM_SOURCE_HEIGHT = 894.0;
 
     private final PlayerOne p1;
     private final PlayerTwo p2;
@@ -81,6 +88,9 @@ public class GamePanel extends StackPane {
     private final List<PowerUp> powerUps = new ArrayList<>(); 
     private final List<HitEffect> hitEffects = new ArrayList<>();
     private final List<PlatformSurface> worldSurfaces;
+    private final SharedMultiplayerCamera sharedCamera;
+    private final List<Player> trackedPlayers = new ArrayList<>(4);
+    private final List<Rectangle2D> trackedPlayerBounds = new ArrayList<>(4);
     private final Set<KeyCode> pressedKeys = new HashSet<>();
     private long p1JumpBufferedUntilMillis;
     private long p2JumpBufferedUntilMillis;
@@ -100,7 +110,7 @@ public class GamePanel extends StackPane {
     private int roundNumber = 1;
     private double cameraX;
     private double cameraY;
-    private double cameraZoom = CAMERA_MIN_ZOOM;
+    private double cameraZoom = GameSettings.CAMERA_MIN_ZOOM;
     
     
     private long nextGunDropAtMillis;
@@ -133,17 +143,44 @@ public class GamePanel extends StackPane {
         this.onRematch = onRematch;
         this.onBackToMenu = onBackToMenu;
         this.selectedMapImage = loadImage(mapResourcePath);
+        this.sunsetMap = SUNSET_MAP_RESOURCE.equals(mapResourcePath);
+        this.sunsetBackgroundImage = sunsetMap ? loadImage("/sunset/background.png") : EMPTY_IMAGE;
+        this.sunsetSunImage = sunsetMap ? loadImage("/sunset/sun.png") : EMPTY_IMAGE;
+        this.sunsetMountainImage = sunsetMap ? loadImage("/sunset/mountain.png") : EMPTY_IMAGE;
+        this.sunsetCityFarImage = sunsetMap ? loadImage("/sunset/city3.png") : EMPTY_IMAGE;
+        this.sunsetCityMidImage = sunsetMap ? loadImage("/sunset/city2.png") : EMPTY_IMAGE;
+        this.sunsetCityNearImage = sunsetMap ? loadImage("/sunset/city1.png") : EMPTY_IMAGE;
+        this.sunsetPlatformImage = sunsetMap ? loadImage("/sunset/platform.png") : EMPTY_IMAGE;
         this.worldSurfaces = createSurfacesForMap(mapResourcePath);
 
         p1 = new PlayerOne(sx(100), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player.png", List.of());
         p2 = new PlayerTwo(sx(500), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player.png", List.of());
         p1.equipPermanentGun(p1Weapon);
         p2.equipPermanentGun(p2Weapon);
+        registerTrackedPlayer(p1);
+        registerTrackedPlayer(p2);
+
+        sharedCamera = new SharedMultiplayerCamera(
+                GameSettings.WIDTH,
+                GameSettings.HEIGHT,
+                -GameSettings.BLAST_ZONE_MARGIN,
+                GameSettings.WIDTH + GameSettings.BLAST_ZONE_MARGIN,
+                -GameSettings.BLAST_ZONE_MARGIN,
+                GameSettings.HEIGHT + GameSettings.BLAST_ZONE_MARGIN,
+                GameSettings.CAMERA_MIN_ZOOM,
+                GameSettings.CAMERA_MAX_ZOOM,
+                GameSettings.CAMERA_DYNAMIC_ZOOM,
+                GameSettings.CAMERA_FIXED_ZOOM,
+                GameSettings.CAMERA_PADDING_X,
+                GameSettings.CAMERA_PADDING_Y,
+                GameSettings.CAMERA_FOLLOW_SPEED
+        );
 
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         getChildren().add(canvas);
         setupPauseUi();
         prepareRound(1);
+        updateCamera(0.0);
 
         SoundManager.getInstance().playRandomBgm(); 
 
@@ -180,6 +217,13 @@ public class GamePanel extends StackPane {
         });
 
         scene.setOnKeyReleased(event -> pressedKeys.remove(event.getCode()));
+    }
+
+    private void registerTrackedPlayer(Player player) {
+        if (player == null || trackedPlayers.size() >= 4) {
+            return;
+        }
+        trackedPlayers.add(player);
     }
 
     private boolean isCombatLocked(long nowMillis) {
@@ -536,7 +580,7 @@ public class GamePanel extends StackPane {
     private void renderGame() {
         long now = System.currentTimeMillis();
 
-        gc.setFill(Color.web("#d9ecff"));
+        gc.setFill(sunsetMap ? Color.web("#a97b74") : Color.web("#d9ecff"));
         gc.fillRect(0, 0, GameSettings.WIDTH, GameSettings.HEIGHT);
 
         double shakeX = 0.0;
@@ -589,6 +633,11 @@ public class GamePanel extends StackPane {
     }
 
     private void renderExtendedMap() {
+        if (sunsetMap) {
+            renderSunsetParallax();
+            return;
+        }
+
         double m = MAP_RENDER_EXTEND_MARGIN;
         gc.drawImage(
                 selectedMapImage,
@@ -597,6 +646,26 @@ public class GamePanel extends StackPane {
                 GameSettings.WIDTH + (m * 2.0),
                 GameSettings.HEIGHT + (m * 2.0)
         );
+    }
+
+    private void renderSunsetParallax() {
+        double m = MAP_RENDER_EXTEND_MARGIN;
+        drawParallaxLayer(sunsetBackgroundImage, -m * 2.0, -m * 2.0, GameSettings.WIDTH + (m * 4.0), GameSettings.HEIGHT + (m * 4.0), 0.02, 0.02);
+        drawParallaxLayer(sunsetSunImage, -220.0, -90.0, 1400.0, 860.0, 0.08, 0.05);
+        drawParallaxLayer(sunsetMountainImage, -280.0, 52.0, 1720.0, 610.0, 0.18, 0.12);
+        drawParallaxLayer(sunsetCityFarImage, -260.0, 180.0, 1500.0, 710.0, 0.32, 0.20);
+        drawParallaxLayer(sunsetCityMidImage, -220.0, 198.0, 1450.0, 690.0, 0.46, 0.26);
+        drawParallaxLayer(sunsetCityNearImage, -220.0, 214.0, 1450.0, 690.0, 0.62, 0.34);
+        drawParallaxLayer(sunsetPlatformImage, 0.0, 0.0, GameSettings.WIDTH, GameSettings.HEIGHT, 1.0, 1.0);
+    }
+
+    private void drawParallaxLayer(Image image, double x, double y, double width, double height, double speedX, double speedY) {
+        if (image == null || image == EMPTY_IMAGE) {
+            return;
+        }
+        double drawX = x + cameraX * (1.0 - speedX);
+        double drawY = y + cameraY * (1.0 - speedY);
+        gc.drawImage(image, drawX, drawY, width, height);
     }
 
     private void renderBlastZoneWarning() {
@@ -608,46 +677,21 @@ public class GamePanel extends StackPane {
     }
 
     private void updateCamera(double deltaSeconds) {
-        var b1 = p1.getBounds();
-        var b2 = p2.getBounds();
+        trackedPlayerBounds.clear();
+        for (Player player : trackedPlayers) {
+            trackedPlayerBounds.add(player.getBounds());
+        }
 
-        double minX = Math.min(b1.getMinX(), b2.getMinX());
-        double maxX = Math.max(b1.getMaxX(), b2.getMaxX());
-        double minY = Math.min(b1.getMinY(), b2.getMinY());
-        double maxY = Math.max(b1.getMaxY(), b2.getMaxY());
-
-        double focusWidth = Math.max(1.0, (maxX - minX) + CAMERA_MARGIN_X);
-        double focusHeight = Math.max(1.0, (maxY - minY) + CAMERA_MARGIN_Y);
-        double zoomByWidth = GameSettings.WIDTH / focusWidth;
-        double zoomByHeight = GameSettings.HEIGHT / focusHeight;
-        double targetZoom = clamp(Math.min(zoomByWidth, zoomByHeight), CAMERA_MIN_ZOOM, CAMERA_MAX_ZOOM);
-
-        double centerX = (minX + maxX) * 0.5;
-        double centerY = (minY + maxY) * 0.5;
-        double viewWidth = GameSettings.WIDTH / targetZoom;
-        double viewHeight = GameSettings.HEIGHT / targetZoom;
-        double targetCameraX = clamp(
-                centerX - (viewWidth * 0.5),
-                -GameSettings.BLAST_ZONE_MARGIN,
-                GameSettings.WIDTH - viewWidth + GameSettings.BLAST_ZONE_MARGIN
-        );
-        double targetCameraY = clamp(
-                centerY - (viewHeight * 0.5),
-                -GameSettings.BLAST_ZONE_MARGIN,
-                GameSettings.HEIGHT - viewHeight + GameSettings.BLAST_ZONE_MARGIN
-        );
-
-        double t = clamp(deltaSeconds * CAMERA_LERP_SPEED, 0.0, 1.0);
-        cameraZoom += (targetZoom - cameraZoom) * t;
-        cameraX += (targetCameraX - cameraX) * t;
-        cameraY += (targetCameraY - cameraY) * t;
-    }
-
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
+        sharedCamera.update(deltaSeconds, trackedPlayerBounds);
+        cameraX = sharedCamera.getCameraX();
+        cameraY = sharedCamera.getCameraY();
+        cameraZoom = sharedCamera.getZoom();
     }
 
     private void renderPlatformGuides() {
+        if (sunsetMap) {
+            return;
+        }
         gc.setFill(Color.web("#2f7cff", 0.45));
         gc.setStroke(Color.web("#0f3fa1", 0.85));
         gc.setLineWidth(1.8);
@@ -814,6 +858,22 @@ public class GamePanel extends StackPane {
         return (mapHeight / MAP_SOURCE_HEIGHT) * GameSettings.HEIGHT;
     }
 
+    private static double sunX(double sourceX) {
+        return (sourceX / SUNSET_PLATFORM_SOURCE_WIDTH) * GameSettings.WIDTH;
+    }
+
+    private static double sunY(double sourceY) {
+        return (sourceY / SUNSET_PLATFORM_SOURCE_HEIGHT) * GameSettings.HEIGHT;
+    }
+
+    private static double sunW(double sourceWidth) {
+        return (sourceWidth / SUNSET_PLATFORM_SOURCE_WIDTH) * GameSettings.WIDTH;
+    }
+
+    private static double sunH(double sourceHeight) {
+        return (sourceHeight / SUNSET_PLATFORM_SOURCE_HEIGHT) * GameSettings.HEIGHT;
+    }
+
     private void respawnPlayerFromSky(Player player, long nowMillis) {
         double minX = SIDE_RESPAWN_MARGIN;
         double maxX = GameSettings.WIDTH - GameSettings.PLAYER_WIDTH - SIDE_RESPAWN_MARGIN;
@@ -965,6 +1025,17 @@ public class GamePanel extends StackPane {
     }
 
     private List<PlatformSurface> createSurfacesForMap(String mapResourcePath) {
+        if (SUNSET_MAP_RESOURCE.equals(mapResourcePath)) {
+            return List.of(
+                    new PlatformSurface(sunX(542), sunY(6), sunW(814), sunH(24), true),
+                    new PlatformSurface(sunX(309), sunY(265), sunW(1280), sunH(24), true),
+                    new PlatformSurface(sunX(542), sunY(524), sunW(814), sunH(24), true),
+                    new PlatformSurface(sunX(12), sunY(525), sunW(273), sunH(24), true),
+                    new PlatformSurface(sunX(1613), sunY(525), sunW(273), sunH(24), true),
+                    new PlatformSurface(sunX(703), sunY(785), sunW(516), sunH(22), true)
+            );
+        }
+
         if ("/Map2.png".equals(mapResourcePath)) {
             return List.of(
                     new PlatformSurface(sx(67), sy(72), sw(132), sh(12), true),

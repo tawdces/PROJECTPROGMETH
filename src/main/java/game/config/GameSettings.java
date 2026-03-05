@@ -20,6 +20,13 @@ public final class GameSettings {
     public static final long COYOTE_TIME_MS = 90;
     public static final long JUMP_INPUT_BUFFER_MS = 120;
     public static final long DROP_INPUT_BUFFER_MS = 140;
+    public static final boolean CAMERA_DYNAMIC_ZOOM = false;
+    public static final double CAMERA_FIXED_ZOOM = 1.0;
+    public static final double CAMERA_MIN_ZOOM = 0.92;
+    public static final double CAMERA_MAX_ZOOM = 1.90;
+    public static final double CAMERA_PADDING_X = 260.0;
+    public static final double CAMERA_PADDING_Y = 180.0;
+    public static final double CAMERA_FOLLOW_SPEED = 8.0;
     public static final double WORLD_FLOOR_Y = HEIGHT + 130.0;
     public static final double BLAST_ZONE_MARGIN = 120.0;
 
