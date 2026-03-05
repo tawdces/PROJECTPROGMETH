@@ -23,6 +23,8 @@ import java.nio.file.Paths;
 
 public class MapSelectPanel extends VBox {
 
+    public static int mapWidth = 540;
+    public static int mapHeight = 300;
     public static final String SUNSET_MAP_RESOURCE = "/sunset/background.png";
     private static final String SUNSET_PREVIEW_RESOURCE = "/sunset/platform.png";
     public static final List<String> MAP_RESOURCES = List.of(
@@ -54,9 +56,9 @@ public class MapSelectPanel extends VBox {
 
         int[] index = {0};
         ImageView mapPreview = new ImageView(loadMap(index[0]));
-        
-        mapPreview.setFitWidth(540); 
-        mapPreview.setFitHeight(300);
+
+        mapPreview.setFitWidth(mapWidth*0.8);
+        mapPreview.setFitHeight(mapHeight*0.8);
         mapPreview.setPreserveRatio(false);
 
         StackPane previewFrame = new StackPane(mapPreview);
