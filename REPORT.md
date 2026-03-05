@@ -71,7 +71,7 @@
             - เริ่มแมตช์ใหม่ (Restart)
             - กลับไปหน้าเมนูหลัก (Main Menu)
             - ปรับเสียงเพลงและเอฟเฟ็กต์ในเกม
-              ![Main Menu](src/main/resources/screenshots/Weapon_select.png)
+              ![Main Menu](src/main/resources/screenshots/Game_panel.png)
 
 ### 2.5 หลักการเล่นเกม
 
