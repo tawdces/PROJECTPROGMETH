@@ -27,7 +27,6 @@ public class MapSelectPanel extends VBox {
 
     public static int mapWidth = 540;
     public static int mapHeight = 300;
-    public static final String SUNSET_MAP_RESOURCE = GameMap.SUNSET_RESOURCE;
     private static final List<GameMap> MAPS = GameMap.availableMaps();
     public static final List<String> MAP_RESOURCES = MAPS.stream()
             .map(GameMap::resourcePath)

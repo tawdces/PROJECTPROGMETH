@@ -11,7 +11,7 @@ public final class ShotgunGun extends AbstractGun {
     private static final double[] VERTICAL_SPREAD = {-190.0, -95.0, 0.0, 95.0, 190.0};
 
     public ShotgunGun() {
-        super("Shotgun", 12_000, 520, 620.0, 255.0, -18.0, 64.0, "/Shotgun.png");
+        super("Shotgun", 12_000, 520, 620.0, 255.0, -18.0, 64.0, "/images/weapons/Shotgun.png");
     }
 
     @Override

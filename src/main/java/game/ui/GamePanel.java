@@ -30,8 +30,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
-import javafx.scene.image.PixelReader;
-import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
@@ -70,9 +68,11 @@ public class GamePanel extends StackPane {
     private final Canvas canvas = new Canvas(GameSettings.WIDTH, GameSettings.HEIGHT);
     private final GraphicsContext gc = canvas.getGraphicsContext2D();
     private final GameMap selectedMap;
-    private final Image bulletHitImage = loadTransparentImage("/Bullet_hit.png");
-    private final Image bloodImage = loadTransparentImage("/Blood.png");
-    private final Image explosionImage = loadTransparentImage("/explosion.png");
+    
+    // Updated to use the simplified loadImage method
+    private final Image bulletHitImage = loadImage("/images/effects/Bullet_hit.png");
+    private final Image bloodImage = loadImage("/images/effects/Blood.png");
+    private final Image explosionImage = loadImage("/images/effects/Explosion.png");
 
     private final PlayerOne p1;
     private final PlayerTwo p2;
@@ -106,7 +106,6 @@ public class GamePanel extends StackPane {
     private double cameraX;
     private double cameraY;
     private double cameraZoom = GameSettings.CAMERA_MIN_ZOOM;
-    
     
     private long nextGunDropAtMillis;
     private long nextTrapDropAtMillis;
@@ -143,13 +142,13 @@ public class GamePanel extends StackPane {
         p1 = new PlayerOne(
                 this.selectedMap.playerOneSpawnX(),
                 this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT,
-                "/Player1.png",
+                "/images/players/Player1.png",
                 List.of()
         );
         p2 = new PlayerTwo(
                 this.selectedMap.playerTwoSpawnX(),
                 this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT,
-                "/Player2.png",
+                "/images/players/Player2.png",
                 List.of()
         );
         p1.equipPermanentGun(p1Weapon);
@@ -1018,11 +1017,8 @@ public class GamePanel extends StackPane {
         SoundManager.getInstance().stopBgm(); 
     }
 
-    private static Image loadTransparentImage(String resourcePath) {
-        return loadImageInternal(resourcePath, true);
-    }
-
-    private static Image loadImageInternal(String resourcePath, boolean transparent) {
+    // Simplified image loading method
+    private static Image loadImage(String resourcePath) {
         Image image;
         var url = GamePanel.class.getResource(resourcePath);
         if (url != null) {
@@ -1030,7 +1026,7 @@ public class GamePanel extends StackPane {
             if (image.isError()) {
                 return EMPTY_IMAGE;
             }
-            return transparent ? makeBackgroundTransparent(image) : image;
+            return image;
         }
 
         Path fallback = Paths.get("src", "main", "resources", resourcePath.replaceFirst("^/", ""));
@@ -1039,52 +1035,9 @@ public class GamePanel extends StackPane {
             if (image.isError()) {
                 return EMPTY_IMAGE;
             }
-            return transparent ? makeBackgroundTransparent(image) : image;
+            return image;
         }
         return EMPTY_IMAGE;
-    }
-
-    private static Image makeBackgroundTransparent(Image raw) {
-        if (raw == null || raw.isError() || raw == EMPTY_IMAGE) {
-            return EMPTY_IMAGE;
-        }
-        int w = (int) Math.round(raw.getWidth());
-        int h = (int) Math.round(raw.getHeight());
-        if (w <= 0 || h <= 0) {
-            return EMPTY_IMAGE;
-        }
-
-        PixelReader reader = raw.getPixelReader();
-        if (reader == null) {
-            return EMPTY_IMAGE;
-        }
-
-        WritableImage out = new WritableImage(w, h);
-        PixelWriter writer = out.getPixelWriter();
-        Color key = reader.getColor(0, 0);
-
-        for (int py = 0; py < h; py++) {
-            for (int px = 0; px < w; px++) {
-                Color c = reader.getColor(px, py);
-                boolean transparentByKey = colorDistance(c, key) < 0.18;
-                boolean transparentByWhite = c.getOpacity() > 0.0
-                        && c.getBrightness() > 0.94
-                        && c.getSaturation() < 0.16;
-                if (transparentByKey || transparentByWhite) {
-                    writer.setColor(px, py, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0.0));
-                } else {
-                    writer.setColor(px, py, c);
-                }
-            }
-        }
-        return out;
-    }
-
-    private static double colorDistance(Color a, Color b) {
-        double dr = a.getRed() - b.getRed();
-        double dg = a.getGreen() - b.getGreen();
-        double db = a.getBlue() - b.getBlue();
-        return Math.sqrt(dr * dr + dg * dg + db * db);
     }
 
     private void addEffect(String type, Image image, double x, double y, double width, double height, long lifeMillis) {

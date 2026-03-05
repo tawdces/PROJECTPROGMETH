@@ -21,7 +21,7 @@ public class MenuPanel extends VBox {
         
         String bgImagePath;
         try {
-            bgImagePath = getClass().getResource("/menu_bg.png").toExternalForm();
+            bgImagePath = getClass().getResource("/images/backgrounds/Menu_bg.png").toExternalForm();
             setStyle(
                     "-fx-background-image: url('" + bgImagePath + "'); "
                     + "-fx-background-size: cover; "

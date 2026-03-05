@@ -27,17 +27,17 @@ public final class SoundManager {
     private double effectVolume = 1.0;
     private double currentBgmBaseVolume = MENU_BGM_BASE_VOLUME;
 
-    private final List<String> bgmFiles = List.of("/bgm1.mp3", "/bgm2.mp3", "/bgm3.mp3", "/bgm4.mp3");
+    private final List<String> bgmFiles = List.of("/sounds/backgrounds/Bg_music1.mp3", "/sounds/backgrounds/Bg_music2.mp3", "/sounds/backgrounds/Bg_music3.mp3", "/sounds/backgrounds/Bg_music4.mp3");
 
     private SoundManager() {
-        loadEffect("shoot", "/shoot.mp3");
-        loadEffect("step", "/step.mp3");
-        loadEffect("hit", "/hit.mp3");
-        loadEffect("melee", "/melee.mp3");
-        loadEffect("die", "/die.mp3"); 
-        loadEffect("pickup", "/pickup.mp3");
-        loadEffect("click", "/click.mp3"); 
-        loadEffect("explosion", "/explosion.mp3");
+        loadEffect("shoot", "/sounds/effects/shoot.mp3");
+        loadEffect("step", "/sounds/effects/step.mp3");
+        loadEffect("hit", "/sounds/effects/hit.mp3");
+        loadEffect("melee", "/sounds/effects/melee.mp3");
+        loadEffect("die", "/sounds/effects/die.mp3"); 
+        loadEffect("pickup", "/sounds/effects/pickup.mp3");
+        loadEffect("click", "/sounds/effects/click.mp3"); 
+        loadEffect("explosion", "/sounds/effects/explosion.mp3");
     }
 
     public static SoundManager getInstance() {
@@ -108,7 +108,7 @@ public final class SoundManager {
     public void playMenuBgm() {
         stopBgm();
         try {
-            String resourcePath = "/menu_bgm.mp3";
+            String resourcePath = "/sounds/backgrounds/Menu_bg_music.mp3";
             URL url = getClass().getResource(resourcePath);
             String mediaUrl = null;
             if (url != null) {
