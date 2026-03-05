@@ -3,8 +3,6 @@ package game.ui;
 import game.config.GameSettings;
 import game.entities.Bullet;
 import game.entities.Player;
-import game.entities.PlayerOne;
-import game.entities.PlayerTwo;
 import game.entities.powerups.PowerUp;
 import game.entities.traps.Landmine;
 import game.entities.traps.Trap;
@@ -65,8 +63,8 @@ public class GamePanel extends StackPane {
     private final Image bloodImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/images/effects/Blood.png");
     private final Image explosionImage = GameImageLoader.loadTransparentImage(GamePanel.class, "/images/effects/Explosion.png");
 
-    private final PlayerOne p1;
-    private final PlayerTwo p2;
+    private final Player p1;
+    private final Player p2;
 
     private final List<Bullet> bullets = new ArrayList<>();
     private final MatchDropCoordinator dropCoordinator;
@@ -130,13 +128,23 @@ public class GamePanel extends StackPane {
         this.traps = dropCoordinator.traps();
         this.powerUps = dropCoordinator.powerUps();
 
-        p1 = new PlayerOne(
+        p1 = new Player(
                 this.selectedMap.playerOneSpawnX(),
-                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT
+                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT,
+                "P1",
+                Color.DODGERBLUE,
+                1,
+                "/images/players/Player1.png",
+                List.of()
         );
-        p2 = new PlayerTwo(
+        p2 = new Player(
                 this.selectedMap.playerTwoSpawnX(),
-                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT
+                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT,
+                "P2",
+                Color.CRIMSON,
+                -1,
+                "/images/players/Player2.png",
+                List.of()
         );
         p1.equipPermanentGun(p1Weapon);
         p2.equipPermanentGun(p2Weapon);

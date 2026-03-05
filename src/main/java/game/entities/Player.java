@@ -18,7 +18,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class Player extends GameEntity {
+public class Player extends GameEntity {
     public enum JumpResult {
         NONE,
         GROUND,
@@ -66,7 +66,7 @@ public abstract class Player extends GameEntity {
     private double stepDistance;
     private static final double STEP_INTERVAL = 60.0;
 
-    protected Player(
+    public Player(
             double startX,
             double startY,
             String name,

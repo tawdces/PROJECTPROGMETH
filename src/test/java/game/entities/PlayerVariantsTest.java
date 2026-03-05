@@ -2,6 +2,7 @@ package game.entities;
 
 import game.logic.SpriteFrame;
 import game.testutil.FxTestUtils;
+import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -17,20 +18,24 @@ class PlayerVariantsTest {
     }
 
     @Test
-    void playerOne_constructorsCreateInstance() {
-        PlayerOne p1a = new PlayerOne(10, 20);
+    void player_constructorCanCreateP1StyleInstance() {
+        Player p1a = new Player(10, 20, "P1", Color.DODGERBLUE, 1, null, List.of());
         assertNotNull(p1a);
+        assertEquals(1, p1a.getFacingDirection());
 
-        PlayerOne p1b = new PlayerOne(10, 20, null, List.of(new SpriteFrame(0, 0, 1, 1)));
+        Player p1b = new Player(10, 20, "P1", Color.DODGERBLUE, 1, null, List.of(new SpriteFrame(0, 0, 1, 1)));
         assertNotNull(p1b);
+        assertEquals(1, p1b.getFacingDirection());
     }
 
     @Test
-    void playerTwo_constructorsCreateInstance() {
-        PlayerTwo p2a = new PlayerTwo(30, 40);
+    void player_constructorCanCreateP2StyleInstance() {
+        Player p2a = new Player(30, 40, "P2", Color.CRIMSON, -1, null, List.of());
         assertNotNull(p2a);
+        assertEquals(-1, p2a.getFacingDirection());
 
-        PlayerTwo p2b = new PlayerTwo(30, 40, null, List.of(new SpriteFrame(0, 0, 1, 1)));
+        Player p2b = new Player(30, 40, "P2", Color.CRIMSON, -1, null, List.of(new SpriteFrame(0, 0, 1, 1)));
         assertNotNull(p2b);
+        assertEquals(-1, p2b.getFacingDirection());
     }
 }

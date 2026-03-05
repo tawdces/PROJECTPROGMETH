@@ -114,8 +114,8 @@ class game.ui.GamePanel {
 - Image bulletHitImage
 - Image bloodImage
 - Image explosionImage
-- PlayerOne p1
-- PlayerTwo p2
+- Player p1
+- Player p2
 - List<Bullet> bullets
 - MatchDropCoordinator dropCoordinator
 - List<WeaponDrop> weaponDrops

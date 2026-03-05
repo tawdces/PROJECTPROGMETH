@@ -11,7 +11,7 @@ class game.entities.powerups.SpeedPowerUp {
 + void render(GraphicsContext)
 }
 
-abstract class game.entities.Player {
+class game.entities.Player {
 - {static} double GUN_WIDTH_RATIO
 - {static} double GUN_HEIGHT_RATIO
 - {static} double GUN_RENDER_SCALE
@@ -47,7 +47,7 @@ abstract class game.entities.Player {
 - double lastTrailSampleY
 - double stepDistance
 - {static} double STEP_INTERVAL
-# <<Create>> Player(double,double,String,Color,int,String,List<SpriteFrame>)
++ <<Create>> Player(double,double,String,Color,int,String,List<SpriteFrame>)
 + void setHorizontalInput(double)
 + boolean jump(long)
 + JumpResult jumpWithResult(long)
@@ -142,36 +142,21 @@ class game.entities.Bullet {
 }
 
 
-class game.entities.PlayerOne {
-+ <<Create>> PlayerOne(double,double)
-+ <<Create>> PlayerOne(double,double,String,List<SpriteFrame>)
-}
-
-class game.entities.traps.Landmine {
-- long spawnTime
-- double explosionMultiplier
-+ <<Create>> Landmine(double,double)
-+ double getExplosionForceMultiplier()
-+ void render(GraphicsContext)
+class game.entities.weapons.ShotgunGun {
+- {static} double[] VERTICAL_SPREAD
++ <<Create>> ShotgunGun()
++ List<Bullet> fire(Player,double,double,int)
 }
 
 
-class game.entities.traps.ExplosiveBarrel {
-- {static} double DROP_GRAVITY
-- {static} double DROP_MAX_SPEED
-- {static} Image EMPTY_IMAGE
-- {static} Image BARREL_IMAGE
-- double landingY
-- double velocityY
-- boolean falling
-+ <<Create>> ExplosiveBarrel(double,double)
-+ <<Create>> ExplosiveBarrel(double,double,double)
-+ double getExplosionForceMultiplier()
-+ void update(double)
-+ void render(GraphicsContext)
-- {static} Image loadTransparentImage(String)
+interface game.entities.weapons.Gun {
+~ String label()
+~ long durationMillis()
+~ long cooldownMillis()
+~ Image sprite()
+~ double renderWidth()
+~ List<Bullet> fire(Player,double,double,int)
 }
-
 
 abstract class game.entities.GameEntity {
 # double x
@@ -199,10 +184,87 @@ abstract class game.entities.powerups.PowerUp {
 + {abstract}void render(GraphicsContext)
 }
 
-class game.entities.PlayerTwo {
-+ <<Create>> PlayerTwo(double,double)
-+ <<Create>> PlayerTwo(double,double,String,List<SpriteFrame>)
+class game.entities.weapons.RifleGun {
++ <<Create>> RifleGun()
 }
+
+class game.entities.weapons.PistolGun {
++ <<Create>> PistolGun()
+}
+
+class game.entities.weapons.UnarmedGun {
+- {static} WritableImage EMPTY_SPRITE
++ String label()
++ long durationMillis()
++ long cooldownMillis()
++ javafx.scene.image.Image sprite()
++ double renderWidth()
++ List<Bullet> fire(Player,double,double,int)
+}
+
+
+class game.entities.weapons.MachineGun {
++ <<Create>> MachineGun()
+}
+
+class game.entities.traps.Landmine {
+- long spawnTime
+- double explosionMultiplier
++ <<Create>> Landmine(double,double)
++ double getExplosionForceMultiplier()
++ void render(GraphicsContext)
+}
+
+
+class game.entities.weapons.GunRegistry {
++ {static} Gun UNARMED
++ {static} Gun PISTOL
++ {static} Gun RIFLE
++ {static} Gun MACHINE_GUN
++ {static} Gun SHOTGUN
++ {static} List<Gun> SELECTABLE_GUNS
+- <<Create>> GunRegistry()
+}
+
+
+class game.entities.traps.ExplosiveBarrel {
+- {static} double DROP_GRAVITY
+- {static} double DROP_MAX_SPEED
+- {static} Image EMPTY_IMAGE
+- {static} Image BARREL_IMAGE
+- double landingY
+- double velocityY
+- boolean falling
++ <<Create>> ExplosiveBarrel(double,double)
++ <<Create>> ExplosiveBarrel(double,double,double)
++ double getExplosionForceMultiplier()
++ void update(double)
++ void render(GraphicsContext)
+- {static} Image loadTransparentImage(String)
+}
+
+
+abstract class game.entities.weapons.AbstractGun {
+- {static} Image EMPTY_GUN_SPRITE
+- String label
+- long durationMillis
+- long cooldownMillis
+- double bulletSpeed
+- double forceX
+- double forceY
+- double renderWidth
+- Image sprite
+# <<Create>> AbstractGun(String,long,long,double,double,double,double,String)
++ String label()
++ long durationMillis()
++ long cooldownMillis()
++ Image sprite()
++ double renderWidth()
++ List<Bullet> fire(Player,double,double,int)
+# Bullet createBullet(Player,double,double,int,double)
+# Bullet createBullet(Player,double,double,int,double,double)
+}
+
 
 
 
@@ -212,13 +274,17 @@ game.entities.GameEntity <|-- game.entities.Player
 game.entities.Player +.. game.entities.Player$GunPose
 game.entities.Player +.. game.entities.Player$TrailSample
 game.entities.GameEntity <|-- game.entities.Bullet
-game.entities.Player <|-- game.entities.PlayerOne
-game.entities.traps.Trap <|-- game.entities.traps.Landmine
-game.entities.traps.Trap <|-- game.entities.traps.ExplosiveBarrel
+game.entities.weapons.AbstractGun <|-- game.entities.weapons.ShotgunGun
 game.logic.Updatable <|.. game.entities.GameEntity
 game.logic.Renderable <|.. game.entities.GameEntity
 game.logic.Collidable <|.. game.entities.GameEntity
 game.entities.powerups.PowerUp <|-- game.entities.powerups.ShieldPowerUp
 game.entities.GameEntity <|-- game.entities.powerups.PowerUp
-game.entities.Player <|-- game.entities.PlayerTwo
+game.entities.weapons.AbstractGun <|-- game.entities.weapons.RifleGun
+game.entities.weapons.AbstractGun <|-- game.entities.weapons.PistolGun
+game.entities.weapons.Gun <|.. game.entities.weapons.UnarmedGun
+game.entities.weapons.AbstractGun <|-- game.entities.weapons.MachineGun
+game.entities.traps.Trap <|-- game.entities.traps.Landmine
+game.entities.traps.Trap <|-- game.entities.traps.ExplosiveBarrel
+game.entities.weapons.Gun <|.. game.entities.weapons.AbstractGun
 @enduml
