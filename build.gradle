@@ -29,3 +29,18 @@ application {
 test {
     useJUnitPlatform()
 }
+
+
+jar { 
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE 
+    from sourceSets.main.output 
+    from sourceSets.main.allSource 
+    
+    manifest {
+        attributes(
+                'Main-Class': application.mainClass.get()
+        )
+    }
+    
+    archiveFileName = "${project.name}-${project.version}-with-sources.jar"
+}
