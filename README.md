@@ -55,7 +55,6 @@ Base path: `src/test/java/game`
 - `entities/`: tests for player, bullet, weapons, powerups
 - `logic/`: tests for timer, camera, sound, update/render contracts
 - `map/`: map/platform tests
-- `traps/`: trap behavior tests
 - `ui/`: UI and drop-coordinator tests
 - `testutil/`: shared test utilities
 
