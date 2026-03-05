@@ -1,4 +1,4 @@
-package game.core;
+package game.logic;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

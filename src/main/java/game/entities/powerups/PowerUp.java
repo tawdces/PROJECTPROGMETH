@@ -1,6 +1,6 @@
 package game.entities.powerups;
 
-import game.core.GameEntity;
+import game.logic.GameEntity;
 import game.entities.Player;
 import javafx.scene.canvas.GraphicsContext;
 

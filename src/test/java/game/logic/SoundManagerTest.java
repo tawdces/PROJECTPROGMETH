@@ -1,4 +1,4 @@
-package game.core;
+package game.logic;
 
 import game.testutil.FxTestUtils;
 import org.junit.jupiter.api.AfterEach;

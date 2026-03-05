@@ -1,7 +1,7 @@
 package game.entities;
 
 import game.config.GameSettings;
-import game.core.SpriteFrame;
+import game.logic.SpriteFrame;
 import game.testutil.FxTestUtils;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;

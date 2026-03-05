@@ -1,4 +1,4 @@
-package game.core;
+package game.logic;
 
 import javafx.scene.canvas.GraphicsContext;
 

@@ -1,6 +1,6 @@
 package game.ui;
 
-import game.core.SoundManager;
+import game.logic.SoundManager;
 import game.testutil.FxTestUtils;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;

@@ -1,8 +1,8 @@
 package game.entities;
 
 import game.config.GameSettings;
-import game.core.PlatformSurface;
-import game.core.SpriteFrame;
+import game.logic.PlatformSurface;
+import game.logic.SpriteFrame;
 import game.entities.weapons.GunRegistry;
 import game.testutil.FxTestUtils;
 import javafx.scene.paint.Color;

@@ -1,7 +1,7 @@
 package game.entities;
 
 import game.config.GameSettings;
-import game.core.GameEntity;
+import game.logic.GameEntity;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 

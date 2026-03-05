@@ -1,6 +1,6 @@
 package game.entities;
 
-import game.core.SpriteFrame;
+import game.logic.SpriteFrame;
 import game.testutil.FxTestUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
