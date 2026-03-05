@@ -5,6 +5,8 @@ import game.map.PlatformSurface;
 import game.logic.SpriteFrame;
 import game.entities.weapons.GunRegistry;
 import game.testutil.FxTestUtils;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -229,5 +231,19 @@ class PlayerTest {
 
         long afterInvuln = now + GameSettings.RESPAWN_INVULNERABILITY_MS + 1;
         assertFalse(p.isInvulnerable(afterInvuln));
+    }
+
+    @Test
+    void render_withSpeedBoostTrail_doesNotThrow() {
+        Player p = new TestPlayer(0, 0, 1);
+        Canvas canvas = new Canvas(220, 220);
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+
+        p.applySpeedBoost(1.6, 5_000L, System.currentTimeMillis());
+        p.setHorizontalInput(1.0);
+        p.update(0.05);
+        p.update(0.05);
+
+        assertDoesNotThrow(() -> p.render(gc));
     }
 }

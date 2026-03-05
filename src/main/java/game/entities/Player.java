@@ -8,12 +8,12 @@ import game.entities.weapons.Gun;
 import game.entities.weapons.GunRegistry;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
-import javafx.scene.image.PixelReader;
-import javafx.scene.image.PixelWriter;
-import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 
@@ -22,7 +22,11 @@ public abstract class Player extends GameEntity {
     private static final double GUN_WIDTH_RATIO = 1.80;
     private static final double GUN_HEIGHT_RATIO = 0.40;
     private static final double GUN_RENDER_SCALE = 1.22;
-    private static final Image EMPTY_SPRITE = new WritableImage(1, 1);
+    private static final long SPEED_TRAIL_SAMPLE_INTERVAL_MS = 35L;
+    private static final long SPEED_TRAIL_LIFETIME_MS = 220L;
+    private static final int SPEED_TRAIL_MAX_SAMPLES = 7;
+    private static final double SPEED_TRAIL_MIN_MOVEMENT_SQ = 9.0;
+    private static final double SPEED_TRAIL_BRIGHTNESS_SHIFT = -0.45;
 
     private final String name;
     private final Color color;
@@ -48,6 +52,10 @@ public abstract class Player extends GameEntity {
     private long invulnerableUntilMillis;
     private double currentSpeedMultiplier = 1.0;
     private long speedBoostUntilMillis;
+    private final Deque<TrailSample> speedTrail = new ArrayDeque<>();
+    private long lastTrailSampleAtMillis;
+    private double lastTrailSampleX;
+    private double lastTrailSampleY;
 
     private double stepDistance;
     private static final double STEP_INTERVAL = 60.0;
@@ -73,6 +81,8 @@ public abstract class Player extends GameEntity {
             Image raw = new Image(Objects.requireNonNull(Player.class.getResourceAsStream(spriteResourcePath)));
             this.spriteSheet = raw;
         }
+        this.lastTrailSampleX = startX;
+        this.lastTrailSampleY = startY;
     }
 
     public void setHorizontalInput(double horizontalInput) {
@@ -111,6 +121,7 @@ public abstract class Player extends GameEntity {
         
         if (nowMillis > speedBoostUntilMillis) {
             currentSpeedMultiplier = 1.0;
+            clearSpeedTrail();
         }
 
         
@@ -130,6 +141,8 @@ public abstract class Player extends GameEntity {
         } else if (!onGround) {
             stepDistance = STEP_INTERVAL; 
         }
+
+        updateSpeedTrail(nowMillis);
     }
 
     @Override
@@ -146,24 +159,12 @@ public abstract class Player extends GameEntity {
         double drawWidth = width;
         double drawHeight = height;
 
-        gc.save();
-        gc.setGlobalAlpha(blink ? 0.48 : 1.0);
-
-        if (spriteSheet != null) {
-            SpriteFrame frame = selectFrame();
-            gc.save();
-            if (facingDirection < 0) {
-                gc.translate(drawX + drawWidth, drawY);
-                gc.scale(-1, 1);
-                gc.drawImage(spriteSheet, frame.x(), frame.y(), frame.width(), frame.height(), 0, 0, drawWidth, drawHeight);
-            } else {
-                gc.drawImage(spriteSheet, frame.x(), frame.y(), frame.width(), frame.height(), drawX, drawY, drawWidth, drawHeight);
-            }
-            gc.restore();
-        } else {
-            gc.setFill(color);
-            gc.fillRoundRect(drawX, drawY, drawWidth, drawHeight, 10, 10);
+        if (speedBoosted) {
+            renderSpeedTrail(gc, nowMillis, drawWidth, drawHeight);
         }
+
+        double actorAlpha = blink ? 0.48 : 1.0;
+        drawPlayerBody(gc, drawX, drawY, drawWidth, drawHeight, facingDirection, actorAlpha, 0.0);
 
         if (hasGun(nowMillis)) {
             Image gunSprite = equippedGun.sprite();
@@ -174,6 +175,7 @@ public abstract class Player extends GameEntity {
             double gunHeight = pose.height();
 
             gc.save();
+            gc.setGlobalAlpha(actorAlpha);
             if (facingDirection < 0) {
                 gc.translate(gunX + gunWidth, gunY);
                 gc.scale(-1, 1);
@@ -183,7 +185,6 @@ public abstract class Player extends GameEntity {
             }
             gc.restore();
         }
-        gc.restore();
 
         
         if (invulnerable || speedBoosted) {
@@ -207,6 +208,112 @@ public abstract class Player extends GameEntity {
         gc.fillRoundRect(drawX + 4, drawY - 19, 30, 14, 8, 8);
         gc.setFill(Color.WHITE);
         gc.fillText(name, drawX + 9, drawY - 8);
+    }
+
+    private void drawPlayerBody(
+            GraphicsContext gc,
+            double drawX,
+            double drawY,
+            double drawWidth,
+            double drawHeight,
+            int facing,
+            double alpha,
+            double brightnessShift
+    ) {
+        gc.save();
+        gc.setGlobalAlpha(alpha);
+        if (brightnessShift != 0.0) {
+            gc.setEffect(new ColorAdjust(0.0, 0.0, brightnessShift, 0.0));
+        }
+
+        if (spriteSheet != null) {
+            SpriteFrame frame = selectFrame();
+            if (facing < 0) {
+                gc.translate(drawX + drawWidth, drawY);
+                gc.scale(-1, 1);
+                gc.drawImage(spriteSheet, frame.x(), frame.y(), frame.width(), frame.height(), 0, 0, drawWidth, drawHeight);
+            } else {
+                gc.drawImage(spriteSheet, frame.x(), frame.y(), frame.width(), frame.height(), drawX, drawY, drawWidth, drawHeight);
+            }
+        } else {
+            double darkenAmount = Math.max(0.0, Math.min(1.0, -brightnessShift));
+            Color trailColor = color.interpolate(Color.BLACK, darkenAmount);
+            gc.setFill(brightnessShift == 0.0 ? color : trailColor);
+            gc.fillRoundRect(drawX, drawY, drawWidth, drawHeight, 10, 10);
+        }
+        gc.restore();
+    }
+
+    private void renderSpeedTrail(GraphicsContext gc, long nowMillis, double drawWidth, double drawHeight) {
+        pruneExpiredTrail(nowMillis);
+        if (speedTrail.isEmpty()) {
+            return;
+        }
+
+        int count = speedTrail.size();
+        int index = 0;
+        for (TrailSample sample : speedTrail) {
+            long age = nowMillis - sample.createdAtMillis();
+            if (age < 0 || age > SPEED_TRAIL_LIFETIME_MS) {
+                index++;
+                continue;
+            }
+            double fade = 1.0 - ((double) age / SPEED_TRAIL_LIFETIME_MS);
+            double depth = (double) (index + 1) / count;
+            double alpha = 0.08 + (fade * 0.28 * depth);
+            drawPlayerBody(gc, sample.x(), sample.y(), drawWidth, drawHeight, sample.facingDirection(), alpha, SPEED_TRAIL_BRIGHTNESS_SHIFT);
+            index++;
+        }
+    }
+
+    private void updateSpeedTrail(long nowMillis) {
+        if (!isSpeedBoosted(nowMillis)) {
+            clearSpeedTrail();
+            return;
+        }
+
+        pruneExpiredTrail(nowMillis);
+        if (speedTrail.isEmpty()) {
+            addTrailSample(previousX, previousY, nowMillis);
+        }
+
+        if (nowMillis - lastTrailSampleAtMillis < SPEED_TRAIL_SAMPLE_INTERVAL_MS) {
+            return;
+        }
+
+        double dx = x - lastTrailSampleX;
+        double dy = y - lastTrailSampleY;
+        if ((dx * dx) + (dy * dy) < SPEED_TRAIL_MIN_MOVEMENT_SQ) {
+            return;
+        }
+        addTrailSample(previousX, previousY, nowMillis);
+    }
+
+    private void addTrailSample(double sampleX, double sampleY, long nowMillis) {
+        speedTrail.addLast(new TrailSample(sampleX, sampleY, facingDirection, nowMillis));
+        lastTrailSampleAtMillis = nowMillis;
+        lastTrailSampleX = sampleX;
+        lastTrailSampleY = sampleY;
+        while (speedTrail.size() > SPEED_TRAIL_MAX_SAMPLES) {
+            speedTrail.removeFirst();
+        }
+    }
+
+    private void pruneExpiredTrail(long nowMillis) {
+        while (!speedTrail.isEmpty()) {
+            TrailSample oldest = speedTrail.peekFirst();
+            if (oldest == null || nowMillis - oldest.createdAtMillis() <= SPEED_TRAIL_LIFETIME_MS) {
+                break;
+            }
+            speedTrail.removeFirst();
+        }
+    }
+
+    private void clearSpeedTrail() {
+        speedTrail.clear();
+        lastTrailSampleAtMillis = 0L;
+        lastTrailSampleX = x;
+        lastTrailSampleY = y;
     }
 
     private SpriteFrame selectFrame() {
@@ -404,9 +511,13 @@ public abstract class Player extends GameEntity {
         nextActionAtMillis = nowMillis + 180L;
         currentSpeedMultiplier = 1.0;
         speedBoostUntilMillis = 0L;
+        clearSpeedTrail();
         invulnerableUntilMillis = nowMillis + GameSettings.RESPAWN_INVULNERABILITY_MS;
     }
 
     private record GunPose(double x, double y, double width, double height, double muzzleX, double muzzleY) {
+    }
+
+    private record TrailSample(double x, double y, int facingDirection, long createdAtMillis) {
     }
 }
