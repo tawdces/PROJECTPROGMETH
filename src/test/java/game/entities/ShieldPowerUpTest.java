@@ -1,6 +1,6 @@
 package game.entities;
 
-import game.core.SpriteFrame;
+import game.logic.SpriteFrame;
 import game.entities.Player;
 import game.entities.powerups.ShieldPowerUp;
 import game.testutil.FxTestUtils;
