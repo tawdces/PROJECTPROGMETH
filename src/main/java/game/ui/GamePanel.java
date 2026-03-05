@@ -18,6 +18,7 @@ import game.map.PlatformSurface;
 import javafx.animation.AnimationTimer;
 import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
+import javafx.geometry.VPos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -30,6 +31,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -734,7 +736,7 @@ public class GamePanel extends StackPane {
         gc.setFont(Font.font("Consolas", FontWeight.BOLD, 15));
         gc.fillText("Weapon: " + p1.getEquippedGun(now).label(), 28, 56);
         gc.fillText("Rounds: " + p1RoundWins + " / " + GameSettings.ROUND_WINS_TO_MATCH, 28, 74);
-        drawStocks(200, 63, p1Stocks, Color.web("#6ed4ff"), true);
+        drawStocks(270, 63, p1Stocks, Color.web("#6ed4ff"), true);
 
         double rightX = GameSettings.WIDTH - sideWidth - 14;
         drawHudFrame(rightX, panelY, sideWidth, panelHeight, Color.web("#3a1717", 0.82), Color.web("#ff8a9b", 0.95));
@@ -749,9 +751,12 @@ public class GamePanel extends StackPane {
 
         double centerX = (GameSettings.WIDTH - centerWidth) * 0.5;
         drawHudFrame(centerX, panelY, centerWidth, panelHeight, Color.web("#1b1f2a", 0.82), Color.web("#ffe175", 0.95));
+        gc.save();
         gc.setFill(Color.web("#ffe175"));
         gc.setFont(Font.font("Impact", FontWeight.NORMAL, 20));
-        gc.fillText("ROUND " + roundNumber, centerX + 18, 34);
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("ROUND " + roundNumber, centerX + (centerWidth * 0.5), 34);
+        gc.restore();
         gc.setFill(Color.WHITE);
         gc.setFont(Font.font("Consolas", FontWeight.BOLD, 15));
         long secondsToDrop = Math.max(0L, (dropCoordinator.nextGunDropAtMillis() - now + 999) / 1000);
@@ -803,9 +808,13 @@ public class GamePanel extends StackPane {
         gc.setLineWidth(2.8);
         gc.strokeRoundRect(x, y, width, height, 18, 18);
 
+        gc.save();
         gc.setFill(Color.web("#fff4af"));
         gc.setFont(Font.font("Impact", FontWeight.NORMAL, 42));
-        gc.fillText(centerBannerText, x + 36, y + 54);
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.setTextBaseline(VPos.CENTER);
+        gc.fillText(centerBannerText, x + (width * 0.5), y + (height * 0.5));
+        gc.restore();
     }
 
     private void showCenterBanner(String text, long durationMillis) {
@@ -984,6 +993,9 @@ public class GamePanel extends StackPane {
     }
 
     private boolean tryPickup(WeaponDrop drop, Player player, long nowMillis) {
+        if (!drop.isLanded()) {
+            return false;
+        }
         if (!drop.bounds().intersects(player.getBounds())) {
             return false;
         }
