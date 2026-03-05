@@ -30,4 +30,39 @@ public final class FxTestUtils {
             }
         }
     }
+
+    public static void runOnFxThreadAndWait(Runnable action) {
+        initJavaFx();
+
+        if (Platform.isFxApplicationThread()) {
+            action.run();
+            return;
+        }
+
+        CountDownLatch latch = new CountDownLatch(1);
+        final RuntimeException[] thrown = new RuntimeException[1];
+
+        Platform.runLater(() -> {
+            try {
+                action.run();
+            } catch (RuntimeException e) {
+                thrown[0] = e;
+            } finally {
+                latch.countDown();
+            }
+        });
+
+        try {
+            if (!latch.await(5, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Timed out waiting for JavaFX task to complete");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for JavaFX task", e);
+        }
+
+        if (thrown[0] != null) {
+            throw thrown[0];
+        }
+    }
 }
