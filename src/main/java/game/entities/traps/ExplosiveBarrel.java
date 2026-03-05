@@ -1,5 +1,6 @@
 package game.entities.traps;
 
+import game.config.GameSettings;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
@@ -18,8 +19,12 @@ public class ExplosiveBarrel extends Trap {
     private static final Image BARREL_IMAGE = loadTransparentImage("/images/traps/Barrel.png");
 
     public ExplosiveBarrel(double x, double y) {
-
-        super(x, y - 42.0, 32.0, 42.0);
+        super(
+                x,
+                y - GameSettings.BARREL_SIZE,
+                GameSettings.BARREL_SIZE,
+                GameSettings.BARREL_SIZE
+        );
     }
 
     @Override

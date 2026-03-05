@@ -18,6 +18,11 @@ import java.util.List;
 import java.util.Objects;
 
 public abstract class Player extends GameEntity {
+    public enum JumpResult {
+        NONE,
+        GROUND,
+        AIR
+    }
 
     private static final double GUN_WIDTH_RATIO = 1.80;
     private static final double GUN_HEIGHT_RATIO = 0.40;
@@ -95,21 +100,25 @@ public abstract class Player extends GameEntity {
     }
 
     public boolean jump(long nowMillis) {
+        return jumpWithResult(nowMillis) != JumpResult.NONE;
+    }
+
+    public JumpResult jumpWithResult(long nowMillis) {
         boolean canGroundJump = onGround || nowMillis <= coyoteJumpUntilMillis;
         if (canGroundJump) {
             velocityY = GameSettings.JUMP_VELOCITY;
             onGround = false;
             coyoteJumpUntilMillis = 0L;
             airJumpsRemaining = GameSettings.MAX_AIR_JUMPS;
-            return true;
+            return JumpResult.GROUND;
         }
 
         if (airJumpsRemaining > 0) {
             velocityY = GameSettings.JUMP_VELOCITY;
             airJumpsRemaining--;
-            return true;
+            return JumpResult.AIR;
         }
-        return false;
+        return JumpResult.NONE;
     }
 
     @Override

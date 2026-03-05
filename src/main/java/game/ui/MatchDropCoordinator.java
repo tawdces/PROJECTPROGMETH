@@ -98,7 +98,7 @@ final class MatchDropCoordinator {
             PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
             var bounds = surface.getBounds();
             double spawnMinX = bounds.getMinX() + 6.0;
-            double spawnMaxX = bounds.getMaxX() - 32.0 - 6.0;
+            double spawnMaxX = bounds.getMaxX() - GameSettings.BARREL_SIZE - 6.0;
             if (spawnMaxX > spawnMinX) {
                 double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
                 double spawnY = bounds.getMinY();
@@ -163,7 +163,7 @@ final class MatchDropCoordinator {
             PlatformSurface surface = candidates.get(random.nextInt(candidates.size()));
             var bounds = surface.getBounds();
             double spawnMinX = bounds.getMinX() + 6.0;
-            double spawnMaxX = bounds.getMaxX() - 32.0 - 6.0;
+            double spawnMaxX = bounds.getMaxX() - GameSettings.BARREL_SIZE - 6.0;
             if (spawnMaxX > spawnMinX) {
                 double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
                 double spawnY = bounds.getMinY();

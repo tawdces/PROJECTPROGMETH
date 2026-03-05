@@ -45,6 +45,11 @@ public class GamePanel extends StackPane {
     private static final double RESPAWN_PAIR_OFFSET = 88.0;
     private static final double RESPAWN_PAIR_JITTER = 24.0;
     private static final double MAP_RENDER_EXTEND_MARGIN = GameSettings.BLAST_ZONE_MARGIN + 24.0;
+    private static final double DOUBLE_JUMP_EFFECT_SIZE = 44.0;
+    private static final long DOUBLE_JUMP_EFFECT_LIFE_MS = 240L;
+    private static final double DOUBLE_JUMP_EFFECT_START_SCALE = 0.82;
+    private static final double DOUBLE_JUMP_EFFECT_END_SCALE = 1.48;
+    private static final double DOUBLE_JUMP_EFFECT_MAX_ALPHA = 0.95;
     private static final Image EMPTY_IMAGE = GameImageLoader.emptyImage();
     private static final boolean SHOW_PLATFORM_GUIDES = false;
 
@@ -279,11 +284,23 @@ public class GamePanel extends StackPane {
     }
 
     private void processBufferedVerticalInputs(long nowMillis) {
-        if (p1JumpBufferedUntilMillis > 0L && nowMillis <= p1JumpBufferedUntilMillis && p1.jump(nowMillis)) {
-            p1JumpBufferedUntilMillis = 0L;
+        if (p1JumpBufferedUntilMillis > 0L && nowMillis <= p1JumpBufferedUntilMillis) {
+            Player.JumpResult jumpResult = p1.jumpWithResult(nowMillis);
+            if (jumpResult != Player.JumpResult.NONE) {
+                p1JumpBufferedUntilMillis = 0L;
+                if (jumpResult == Player.JumpResult.AIR) {
+                    spawnDoubleJumpEffect(p1);
+                }
+            }
         }
-        if (p2JumpBufferedUntilMillis > 0L && nowMillis <= p2JumpBufferedUntilMillis && p2.jump(nowMillis)) {
-            p2JumpBufferedUntilMillis = 0L;
+        if (p2JumpBufferedUntilMillis > 0L && nowMillis <= p2JumpBufferedUntilMillis) {
+            Player.JumpResult jumpResult = p2.jumpWithResult(nowMillis);
+            if (jumpResult != Player.JumpResult.NONE) {
+                p2JumpBufferedUntilMillis = 0L;
+                if (jumpResult == Player.JumpResult.AIR) {
+                    spawnDoubleJumpEffect(p2);
+                }
+            }
         }
         if (p1DropBufferedUntilMillis > 0L && nowMillis <= p1DropBufferedUntilMillis && canDropToLowerPlatform(p1)) {
             p1.requestDropThrough(nowMillis);
@@ -586,7 +603,9 @@ public class GamePanel extends StackPane {
         for (PowerUp p : powerUps) p.render(gc);
 
         for (GameEffect effect : hitEffects) {
-            if (effect.image() != EMPTY_IMAGE) {
+            if ("doubleJump".equals(effect.type())) {
+                renderDoubleJumpEffect(effect, now);
+            } else if (effect.image() != EMPTY_IMAGE) {
                 gc.drawImage(effect.image(), effect.x(), effect.y(), effect.width(), effect.height());
             } else if ("explosion".equals(effect.type())) {
                 double t = Math.max(0, (double) (effect.expiresAt() - now) / effect.totalLife());
@@ -610,6 +629,59 @@ public class GamePanel extends StackPane {
 
         renderHud();
         renderCenterBanner(now);
+    }
+
+    private void renderDoubleJumpEffect(GameEffect effect, long nowMillis) {
+        long totalLife = Math.max(1L, effect.totalLife());
+        long remaining = Math.max(0L, effect.expiresAt() - nowMillis);
+        double progress = 1.0 - (remaining / (double) totalLife);
+        progress = Math.max(0.0, Math.min(1.0, progress));
+
+        double scale = DOUBLE_JUMP_EFFECT_START_SCALE
+                + ((DOUBLE_JUMP_EFFECT_END_SCALE - DOUBLE_JUMP_EFFECT_START_SCALE) * progress);
+        double alpha = (1.0 - progress) * DOUBLE_JUMP_EFFECT_MAX_ALPHA;
+        double pulse = 1.0 + (Math.sin(progress * Math.PI) * 0.15);
+
+        double centerX = effect.x() + (effect.width() * 0.5);
+        double centerY = effect.y() + (effect.height() * 0.5);
+        double drawWidth = effect.width() * scale * pulse;
+        double drawHeight = effect.height() * scale * pulse;
+        double drawX = centerX - (drawWidth * 0.5);
+        double drawY = centerY - (drawHeight * 0.5) - (progress * 10.0);
+
+        if (alpha > 0.01) {
+            gc.setFill(Color.web("#ffffff", alpha * 0.25));
+            gc.fillOval(drawX - 6.0, drawY - 5.0, drawWidth + 12.0, drawHeight + 10.0);
+            gc.setFill(Color.web("#ffffff", alpha * 0.55));
+            gc.fillOval(
+                    drawX + drawWidth * 0.18,
+                    drawY + drawHeight * 0.20,
+                    drawWidth * 0.64,
+                    drawHeight * 0.54
+            );
+        }
+
+        double ringAlpha = (1.0 - progress) * 0.85;
+        if (ringAlpha > 0.01) {
+            double ringWidth = drawWidth * (0.74 + (progress * 0.28));
+            double ringHeight = drawHeight * (0.42 + (progress * 0.22));
+            gc.setStroke(Color.web("#ffffff", ringAlpha));
+            gc.setLineWidth(3.0 - (progress * 1.1));
+            gc.strokeOval(
+                    centerX - (ringWidth * 0.5),
+                    centerY - (ringHeight * 0.5) + 6.0,
+                    ringWidth,
+                    ringHeight
+            );
+            gc.setStroke(Color.web("#ffffff", ringAlpha * 0.45));
+            gc.setLineWidth(2.0 - (progress * 0.7));
+            gc.strokeOval(
+                    centerX - (ringWidth * 0.65),
+                    centerY - (ringHeight * 0.65) + 6.0,
+                    ringWidth * 1.30,
+                    ringHeight * 1.30
+            );
+        }
     }
 
     private void renderExtendedMap() {
@@ -861,12 +933,24 @@ public class GamePanel extends StackPane {
         hitEffects.add(new GameEffect(type, image, x, y, width, height, System.currentTimeMillis() + lifeMillis, lifeMillis));
     }
 
+    private void spawnDoubleJumpEffect(Player player) {
+        if (player == null) {
+            return;
+        }
+        var bounds = player.getBounds();
+        double size = DOUBLE_JUMP_EFFECT_SIZE;
+        double effectX = bounds.getMinX() + (bounds.getWidth() - size) * 0.5;
+        double effectY = bounds.getMinY() + bounds.getHeight() - (size * 0.6);
+        addEffect("doubleJump", EMPTY_IMAGE, effectX, effectY, size, size, DOUBLE_JUMP_EFFECT_LIFE_MS);
+    }
+
     private void removeExpiredEffects(long nowMillis) {
         hitEffects.removeIf(effect -> effect.isExpired(nowMillis));
     }
 
     private void triggerCameraShake(double strength, long durationMillis) {
-        shakeStrength = Math.max(shakeStrength, strength);
+        double clampedStrength = Math.max(0.0, Math.min(GameSettings.SCREEN_SHAKE_MAX_STRENGTH, strength));
+        shakeStrength = Math.max(shakeStrength, clampedStrength);
         shakeUntilMillis = Math.max(shakeUntilMillis, System.currentTimeMillis() + durationMillis);
     }
 

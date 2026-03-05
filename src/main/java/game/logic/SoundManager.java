@@ -14,11 +14,18 @@ import java.util.Map;
 import java.util.Random;
 
 public final class SoundManager {
+    private enum BgmMode {
+        NONE,
+        MENU,
+        GAME
+    }
+
     private static final SoundManager INSTANCE = new SoundManager();
     private static final double MENU_BGM_BASE_VOLUME = 1.0;
     private static final double GAME_BGM_BASE_VOLUME = 0.35;
     private static final double MIN_VOLUME = 0.0;
     private static final double MAX_VOLUME = 1.0;
+    private static final String MENU_BGM_RESOURCE = "/sounds/backgrounds/Menu_bg_music.mp3";
 
     private final Map<String, AudioClip> effects = new HashMap<>();
     private MediaPlayer bgmPlayer;
@@ -26,6 +33,8 @@ public final class SoundManager {
     private double musicVolume = 1.0;
     private double effectVolume = 1.0;
     private double currentBgmBaseVolume = MENU_BGM_BASE_VOLUME;
+    private BgmMode currentBgmMode = BgmMode.NONE;
+    private String currentBgmResource;
 
     private final List<String> bgmFiles = List.of("/sounds/backgrounds/Bg_music1.mp3", "/sounds/backgrounds/Bg_music2.mp3", "/sounds/backgrounds/Bg_music3.mp3", "/sounds/backgrounds/Bg_music4.mp3");
 
@@ -74,10 +83,15 @@ public final class SoundManager {
     }
 
     public void playRandomBgm() {
-        stopBgm();
         if (bgmFiles.isEmpty()) return;
 
         String resourcePath = bgmFiles.get(random.nextInt(bgmFiles.size()));
+        if (currentBgmMode == BgmMode.GAME && bgmPlayer != null && resourcePath.equals(currentBgmResource)) {
+            currentBgmBaseVolume = GAME_BGM_BASE_VOLUME;
+            applyBgmVolume();
+            return;
+        }
+        stopBgm();
         try {
             URL url = getClass().getResource(resourcePath);
             String mediaUrl = null;
@@ -95,6 +109,8 @@ public final class SoundManager {
                 bgmPlayer = new MediaPlayer(media);
                 bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
                 currentBgmBaseVolume = GAME_BGM_BASE_VOLUME;
+                currentBgmMode = BgmMode.GAME;
+                currentBgmResource = resourcePath;
                 applyBgmVolume();
                 bgmPlayer.play();
             } else {
@@ -106,9 +122,14 @@ public final class SoundManager {
     }
 
     public void playMenuBgm() {
-        stopBgm();
         try {
-            String resourcePath = "/sounds/backgrounds/Menu_bg_music.mp3";
+            String resourcePath = MENU_BGM_RESOURCE;
+            if (currentBgmMode == BgmMode.MENU && bgmPlayer != null) {
+                currentBgmBaseVolume = MENU_BGM_BASE_VOLUME;
+                applyBgmVolume();
+                return;
+            }
+            stopBgm();
             URL url = getClass().getResource(resourcePath);
             String mediaUrl = null;
             if (url != null) {
@@ -125,6 +146,8 @@ public final class SoundManager {
                 bgmPlayer = new MediaPlayer(media);
                 bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
                 currentBgmBaseVolume = MENU_BGM_BASE_VOLUME;
+                currentBgmMode = BgmMode.MENU;
+                currentBgmResource = resourcePath;
                 applyBgmVolume();
                 bgmPlayer.play();
             } else {
@@ -141,6 +164,8 @@ public final class SoundManager {
             bgmPlayer.dispose();
             bgmPlayer = null;
         }
+        currentBgmMode = BgmMode.NONE;
+        currentBgmResource = null;
     }
 
     public double getMusicVolume() {

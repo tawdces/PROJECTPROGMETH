@@ -51,9 +51,10 @@ public final class GameSettings {
     public static final long ROUND_END_DELAY_MS = 1_500;
     public static final long ROUND_START_COUNTDOWN_MS = 1_600;
     public static final long SCREEN_SHAKE_DURATION_MS = 90;
-    public static final double SCREEN_SHAKE_STRENGTH = 5.5;
+    public static final double SCREEN_SHAKE_STRENGTH = 3.2;
+    public static final double SCREEN_SHAKE_MAX_STRENGTH = 5.0;
 
-    public static final double BARREL_SIZE = 36.0;
+    public static final double BARREL_SIZE = 52.0;
     public static final double EXPLOSION_RADIUS = 200.0;
     public static final double EXPLOSION_FORCE_BASE = 1400.0;
     public static final double EXPLOSION_VERTICAL_FORCE = -450.0;
