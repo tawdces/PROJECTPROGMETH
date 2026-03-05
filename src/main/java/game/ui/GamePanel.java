@@ -1,7 +1,8 @@
 package game.ui;
 
 import game.config.GameSettings;
-import game.logic.PlatformSurface;
+import game.map.GameMap;
+import game.map.PlatformSurface;
 import game.logic.Renderable;
 import game.logic.SharedMultiplayerCamera;
 import game.logic.SoundManager;
@@ -61,7 +62,6 @@ public class GamePanel extends StackPane {
     private static final double RESPAWN_PAIR_JITTER = 24.0;
     private static final double MAP_RENDER_EXTEND_MARGIN = GameSettings.BLAST_ZONE_MARGIN + 24.0;
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
-    private static final String SUNSET_MAP_RESOURCE = "/sunset/background.png";
     private static final boolean SHOW_PLATFORM_GUIDES = false;
 
     private final Runnable onRematch;
@@ -69,23 +69,10 @@ public class GamePanel extends StackPane {
 
     private final Canvas canvas = new Canvas(GameSettings.WIDTH, GameSettings.HEIGHT);
     private final GraphicsContext gc = canvas.getGraphicsContext2D();
-    private final Image selectedMapImage;
-    private final boolean sunsetMap;
-    private final Image sunsetBackgroundImage;
-    private final Image sunsetSunImage;
-    private final Image sunsetMountainImage;
-    private final Image sunsetCityFarImage;
-    private final Image sunsetCityMidImage;
-    private final Image sunsetCityNearImage;
-    private final Image sunsetPlatformImage;
+    private final GameMap selectedMap;
     private final Image bulletHitImage = loadTransparentImage("/Bullet_hit.png");
     private final Image bloodImage = loadTransparentImage("/Blood.png");
     private final Image explosionImage = loadTransparentImage("/explosion.png");
-
-    private static final double MAP_SOURCE_WIDTH = 598.0;
-    private static final double MAP_SOURCE_HEIGHT = 348.0;
-    private static final double SUNSET_PLATFORM_SOURCE_WIDTH = 1898.0;
-    private static final double SUNSET_PLATFORM_SOURCE_HEIGHT = 894.0;
 
     private final PlayerOne p1;
     private final PlayerTwo p2;
@@ -147,22 +134,24 @@ public class GamePanel extends StackPane {
         }
     };
 
-    public GamePanel(String mapResourcePath, Gun p1Weapon, Gun p2Weapon, Runnable onRematch, Runnable onBackToMenu) {
+    public GamePanel(GameMap selectedMap, Gun p1Weapon, Gun p2Weapon, Runnable onRematch, Runnable onBackToMenu) {
         this.onRematch = onRematch;
         this.onBackToMenu = onBackToMenu;
-        this.selectedMapImage = loadImage(mapResourcePath);
-        this.sunsetMap = SUNSET_MAP_RESOURCE.equals(mapResourcePath);
-        this.sunsetBackgroundImage = sunsetMap ? loadImage("/sunset/background.png") : EMPTY_IMAGE;
-        this.sunsetSunImage = sunsetMap ? loadImage("/sunset/sun.png") : EMPTY_IMAGE;
-        this.sunsetMountainImage = sunsetMap ? loadImage("/sunset/mountain.png") : EMPTY_IMAGE;
-        this.sunsetCityFarImage = sunsetMap ? loadImage("/sunset/city3.png") : EMPTY_IMAGE;
-        this.sunsetCityMidImage = sunsetMap ? loadImage("/sunset/city2.png") : EMPTY_IMAGE;
-        this.sunsetCityNearImage = sunsetMap ? loadImage("/sunset/city1.png") : EMPTY_IMAGE;
-        this.sunsetPlatformImage = sunsetMap ? loadImage("/sunset/platform.png") : EMPTY_IMAGE;
-        this.worldSurfaces = createSurfacesForMap(mapResourcePath);
+        this.selectedMap = selectedMap == null ? GameMap.defaultMap() : selectedMap;
+        this.worldSurfaces = this.selectedMap.surfaces();
 
-        p1 = new PlayerOne(sx(100), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player1.png", List.of());
-        p2 = new PlayerTwo(sx(500), sy(214) - GameSettings.PLAYER_HEIGHT, "/Player2.png", List.of());
+        p1 = new PlayerOne(
+                this.selectedMap.playerOneSpawnX(),
+                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT,
+                "/Player1.png",
+                List.of()
+        );
+        p2 = new PlayerTwo(
+                this.selectedMap.playerTwoSpawnX(),
+                this.selectedMap.spawnGroundY() - GameSettings.PLAYER_HEIGHT,
+                "/Player2.png",
+                List.of()
+        );
         p1.equipPermanentGun(p1Weapon);
         p2.equipPermanentGun(p2Weapon);
         registerTrackedPlayer(p1);
@@ -583,7 +572,7 @@ public class GamePanel extends StackPane {
     private void renderGame() {
         long now = System.currentTimeMillis();
 
-        gc.setFill(sunsetMap ? Color.web("#a97b74") : Color.web("#d9ecff"));
+        gc.setFill(selectedMap.backgroundColor());
         gc.fillRect(0, 0, GameSettings.WIDTH, GameSettings.HEIGHT);
 
         double shakeX = 0.0;
@@ -638,39 +627,7 @@ public class GamePanel extends StackPane {
     }
 
     private void renderExtendedMap() {
-        if (sunsetMap) {
-            renderSunsetParallax();
-            return;
-        }
-
-        double m = MAP_RENDER_EXTEND_MARGIN;
-        gc.drawImage(
-                selectedMapImage,
-                -m,
-                -m,
-                GameSettings.WIDTH + (m * 2.0),
-                GameSettings.HEIGHT + (m * 2.0)
-        );
-    }
-
-    private void renderSunsetParallax() {
-        double m = MAP_RENDER_EXTEND_MARGIN;
-        drawParallaxLayer(sunsetBackgroundImage, -m * 2.0, -m * 2.0, GameSettings.WIDTH + (m * 4.0), GameSettings.HEIGHT + (m * 4.0), 0.02, 0.02);
-        drawParallaxLayer(sunsetSunImage, -220.0, -90.0, 1400.0, 860.0, 0.08, 0.05);
-        drawParallaxLayer(sunsetMountainImage, -280.0, 52.0, 1720.0, 610.0, 0.18, 0.12);
-        drawParallaxLayer(sunsetCityFarImage, -260.0, 180.0, 1500.0, 710.0, 0.32, 0.20);
-        drawParallaxLayer(sunsetCityMidImage, -220.0, 198.0, 1450.0, 690.0, 0.46, 0.26);
-        drawParallaxLayer(sunsetCityNearImage, -220.0, 214.0, 1450.0, 690.0, 0.62, 0.34);
-        drawParallaxLayer(sunsetPlatformImage, 0.0, 0.0, GameSettings.WIDTH, GameSettings.HEIGHT, 1.0, 1.0);
-    }
-
-    private void drawParallaxLayer(Image image, double x, double y, double width, double height, double speedX, double speedY) {
-        if (image == null || image == EMPTY_IMAGE) {
-            return;
-        }
-        double drawX = x + cameraX * (1.0 - speedX);
-        double drawY = y + cameraY * (1.0 - speedY);
-        gc.drawImage(image, drawX, drawY, width, height);
+        selectedMap.render(gc, cameraX, cameraY, MAP_RENDER_EXTEND_MARGIN);
     }
 
     private void renderBlastZoneWarning() {
@@ -842,38 +799,6 @@ public class GamePanel extends StackPane {
         modal.setMaxHeight(280);
         modal.setStyle("-fx-background-color: rgba(0,0,0,0.83); -fx-padding: 24; -fx-background-radius: 14;");
         getChildren().add(modal);
-    }
-
-    private static double sx(double mapX) {
-        return (mapX / MAP_SOURCE_WIDTH) * GameSettings.WIDTH;
-    }
-
-    private static double sy(double mapY) {
-        return (mapY / MAP_SOURCE_HEIGHT) * GameSettings.HEIGHT;
-    }
-
-    private static double sw(double mapWidth) {
-        return (mapWidth / MAP_SOURCE_WIDTH) * GameSettings.WIDTH;
-    }
-
-    private static double sh(double mapHeight) {
-        return (mapHeight / MAP_SOURCE_HEIGHT) * GameSettings.HEIGHT;
-    }
-
-    private static double sunX(double sourceX) {
-        return (sourceX / SUNSET_PLATFORM_SOURCE_WIDTH) * GameSettings.WIDTH;
-    }
-
-    private static double sunY(double sourceY) {
-        return (sourceY / SUNSET_PLATFORM_SOURCE_HEIGHT) * GameSettings.HEIGHT;
-    }
-
-    private static double sunW(double sourceWidth) {
-        return (sourceWidth / SUNSET_PLATFORM_SOURCE_WIDTH) * GameSettings.WIDTH;
-    }
-
-    private static double sunH(double sourceHeight) {
-        return (sourceHeight / SUNSET_PLATFORM_SOURCE_HEIGHT) * GameSettings.HEIGHT;
     }
 
     private void respawnPlayerFromSky(Player player, long nowMillis) {
@@ -1091,51 +1016,6 @@ public class GamePanel extends StackPane {
     private void shutdownGameSystems() {
         gameLoop.stop();
         SoundManager.getInstance().stopBgm(); 
-    }
-
-    private List<PlatformSurface> createSurfacesForMap(String mapResourcePath) {
-        if (SUNSET_MAP_RESOURCE.equals(mapResourcePath)) {
-            return List.of(
-                    new PlatformSurface(sunX(542), sunY(50), sunW(814), sunH(24), true),
-                    new PlatformSurface(sunX(309), sunY(305), sunW(1280), sunH(24), true),
-                    new PlatformSurface(sunX(542), sunY(560), sunW(814), sunH(24), true),
-                    new PlatformSurface(sunX(12), sunY(560), sunW(273), sunH(24), true),
-                    new PlatformSurface(sunX(1613), sunY(560), sunW(273), sunH(24), true),
-                    new PlatformSurface(sunX(703), sunY(830), sunW(516), sunH(22), true)
-            );
-        }
-
-        if ("/Map2.png".equals(mapResourcePath)) {
-            return List.of(
-                    new PlatformSurface(sx(60), sy(70), sw(160), sh(12), true),
-                    new PlatformSurface(sx(24), sy(145), sw(315), sh(13), true),
-                    new PlatformSurface(sx(0), sy(220), sw(490), sh(13), true),
-                    new PlatformSurface(sx(-15), sy(300), sw(550), sh(14), true)
-            );
-        }
-
-        if ("/Map3.png".equals(mapResourcePath)) {
-            return List.of(
-                    new PlatformSurface(sx(-30), sy(150), sw(120), sh(10), true),
-                    new PlatformSurface(sx(505), sy(150), sw(120), sh(10), true),
-                    new PlatformSurface(sx(-45), sy(230), sw(120), sh(12), true),
-                    new PlatformSurface(sx(500), sy(230), sw(120), sh(12), true),
-                    new PlatformSurface(sx(-30), sy(315), sw(650), sh(16), true)
-            );
-        }
-
-        return List.of(
-                new PlatformSurface(sx(120), sy(135), sw(148), sh(12), true),
-                new PlatformSurface(sx(320), sy(135), sw(145), sh(12), true),
-                new PlatformSurface(sx(-30), sy(214), sw(660), sh(14), true),
-                new PlatformSurface(sx(70), sy(290), sw(88), sh(12), true),
-                new PlatformSurface(sx(425), sy(290), sw(89), sh(12), true),
-                new PlatformSurface(sx(70), sy(375), sw(450), sh(14), true)
-        );
-    }
-
-    private static Image loadImage(String resourcePath) {
-        return loadImageInternal(resourcePath, false);
     }
 
     private static Image loadTransparentImage(String resourcePath) {

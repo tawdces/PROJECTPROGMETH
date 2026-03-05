@@ -1,5 +1,8 @@
-package game.logic;
+package game.entities;
 
+import game.logic.Collidable;
+import game.logic.Renderable;
+import game.logic.Updatable;
 import javafx.geometry.Rectangle2D;
 
 public abstract class GameEntity implements Updatable, Renderable, Collidable {

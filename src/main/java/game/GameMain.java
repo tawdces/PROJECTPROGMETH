@@ -2,6 +2,7 @@ package game;
 
 import game.config.GameSettings;
 import game.entities.weapons.Gun;
+import game.map.GameMap;
 import game.ui.GamePanel;
 import game.ui.MapSelectPanel;
 import game.ui.MenuPanel;
@@ -23,7 +24,7 @@ public class GameMain extends Application {
     private Scene appScene;
     private final Group scaledContent = new Group();
     private final StackPane responsiveRoot = new StackPane(scaledContent);
-    private String selectedMapResource = "/Map1.png";
+    private GameMap selectedMap = GameMap.defaultMap();
 
     @Override
     public void start(Stage primaryStage) {
@@ -59,8 +60,8 @@ public class GameMain extends Application {
         Platform.runLater(mapSelect::requestFocus);
     }
 
-    public void showWeaponSelect(String mapResource) {
-        selectedMapResource = mapResource;
+    public void showWeaponSelect(GameMap map) {
+        selectedMap = map == null ? GameMap.defaultMap() : map;
         WeaponSelectPanel weaponSelect = new WeaponSelectPanel(this::startGame, this::showMapSelect);
         setContent(weaponSelect);
         Platform.runLater(weaponSelect::requestFocus);
@@ -68,10 +69,10 @@ public class GameMain extends Application {
 
     public void startGame(Gun p1Weapon, Gun p2Weapon) {
         GamePanel gamePanel = new GamePanel(
-                selectedMapResource,
+                selectedMap,
                 p1Weapon,
                 p2Weapon,
-                () -> showWeaponSelect(selectedMapResource),
+                () -> showWeaponSelect(selectedMap),
                 this::showMenu
         );
         setContent(gamePanel);

@@ -1,6 +1,6 @@
 package game.entities.traps;
 
-import game.logic.GameEntity;
+import game.entities.GameEntity;
 
 public abstract class Trap extends GameEntity {
 

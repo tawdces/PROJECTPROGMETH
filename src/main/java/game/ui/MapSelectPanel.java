@@ -2,6 +2,7 @@ package game.ui;
 
 import game.config.GameSettings;
 import game.logic.SoundManager;
+import game.map.GameMap;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -15,32 +16,24 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
-import java.util.List;
-import java.util.function.Consumer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class MapSelectPanel extends VBox {
 
     public static int mapWidth = 540;
     public static int mapHeight = 300;
-    public static final String SUNSET_MAP_RESOURCE = "/sunset/background.png";
-    private static final String SUNSET_PREVIEW_RESOURCE = "/sunset/sunsetcityPreview.png";
-    public static final List<String> MAP_RESOURCES = List.of(
-            "/Map1.png",
-            "/Map2.png",
-            "/Map3.png",
-            SUNSET_MAP_RESOURCE
-    );
-    private static final List<String> MAP_LABELS = List.of(
-            "Map 1",
-            "Map 2",
-            "Map 3",
-            "Sunset"
-    );
+    public static final String SUNSET_MAP_RESOURCE = GameMap.SUNSET_RESOURCE;
+    private static final List<GameMap> MAPS = GameMap.availableMaps();
+    public static final List<String> MAP_RESOURCES = MAPS.stream()
+            .map(GameMap::resourcePath)
+            .collect(Collectors.toUnmodifiableList());
 
-    public MapSelectPanel(Consumer<String> onMapSelected, Runnable onBackToMenu) {
+    public MapSelectPanel(Consumer<GameMap> onMapSelected, Runnable onBackToMenu) {
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         setAlignment(Pos.CENTER);
         
@@ -97,7 +90,7 @@ public class MapSelectPanel extends VBox {
         styleButton(next, "#3c8cff", "#1f5ec9");
         next.setOnAction(event -> {
             SoundManager.getInstance().playEffect("click");
-            onMapSelected.accept(MAP_RESOURCES.get(index[0]));
+            onMapSelected.accept(MAPS.get(index[0]));
         });
 
         
@@ -122,7 +115,7 @@ public class MapSelectPanel extends VBox {
                 page.setText("Arena " + (index[0] + 1) + " / " + MAP_RESOURCES.size());
             } else if (event.getCode() == KeyCode.ENTER) {
                 SoundManager.getInstance().playEffect("click");
-                onMapSelected.accept(MAP_RESOURCES.get(index[0]));
+                onMapSelected.accept(MAPS.get(index[0]));
             } else if (event.getCode() == KeyCode.ESCAPE) {
                 SoundManager.getInstance().playEffect("click");
                 onBackToMenu.run();
@@ -134,8 +127,7 @@ public class MapSelectPanel extends VBox {
     }
 
     private static Image loadMap(int index) {
-        String resource = MAP_RESOURCES.get(index);
-        String previewResource = SUNSET_MAP_RESOURCE.equals(resource) ? SUNSET_PREVIEW_RESOURCE : resource;
+        String previewResource = MAPS.get(index).previewResourcePath();
 
         var url = MapSelectPanel.class.getResource(previewResource);
         if (url != null) {
@@ -150,7 +142,7 @@ public class MapSelectPanel extends VBox {
     }
 
     private static String labelFor(int index) {
-        return MAP_LABELS.get(index);
+        return MAPS.get(index).label();
     }
 
     private static int cycleIndex(int current, int direction, int size) {

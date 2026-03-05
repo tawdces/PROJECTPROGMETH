@@ -1,8 +1,8 @@
-package game.logic;
+package game.map;
 
 import javafx.geometry.Rectangle2D;
 
-public class PlatformSurface {
+public final class PlatformSurface {
 
     private final Rectangle2D bounds;
     private final boolean oneWay;

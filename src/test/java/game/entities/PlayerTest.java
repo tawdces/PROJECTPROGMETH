@@ -1,7 +1,7 @@
 package game.entities;
 
 import game.config.GameSettings;
-import game.logic.PlatformSurface;
+import game.map.PlatformSurface;
 import game.logic.SpriteFrame;
 import game.entities.weapons.GunRegistry;
 import game.testutil.FxTestUtils;

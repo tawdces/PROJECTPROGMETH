@@ -1,7 +1,6 @@
 package game.entities;
 
 import game.config.GameSettings;
-import game.logic.GameEntity;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;

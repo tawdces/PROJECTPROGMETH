@@ -1,6 +1,7 @@
 package game.ui;
 
 import game.logic.SoundManager;
+import game.map.GameMap;
 import game.testutil.FxTestUtils;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
@@ -28,7 +29,7 @@ class MapSelectPanelTest {
 
     @Test
     void constructs_andKeyEventsTriggerCallbacks() {
-        AtomicReference<String> selectedMap = new AtomicReference<>();
+        AtomicReference<GameMap> selectedMap = new AtomicReference<>();
         AtomicInteger backCalls = new AtomicInteger();
 
         FxTestUtils.runOnFxThreadAndWait(() -> {
@@ -47,7 +48,7 @@ class MapSelectPanelTest {
         });
 
         assertNotNull(selectedMap.get(), "ENTER should select a map");
-        assertTrue(MapSelectPanel.MAP_RESOURCES.contains(selectedMap.get()));
+        assertTrue(MapSelectPanel.MAP_RESOURCES.contains(selectedMap.get().resourcePath()));
         assertEquals(1, backCalls.get(), "ESC should call onBackToMenu");
     }
 }
