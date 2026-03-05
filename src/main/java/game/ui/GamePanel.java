@@ -82,6 +82,10 @@ public class GamePanel extends StackPane {
     private final List<HitEffect> hitEffects = new ArrayList<>();
     private final List<PlatformSurface> worldSurfaces;
     private final Set<KeyCode> pressedKeys = new HashSet<>();
+    private long p1JumpBufferedUntilMillis;
+    private long p2JumpBufferedUntilMillis;
+    private long p1DropBufferedUntilMillis;
+    private long p2DropBufferedUntilMillis;
     private final Random random = new Random();
     private final Button pauseButton = new Button("Pause");
     private VBox pauseModal;
@@ -148,7 +152,10 @@ public class GamePanel extends StackPane {
 
     public void bindInput(Scene scene) {
         scene.setOnKeyPressed(event -> {
-            pressedKeys.add(event.getCode());
+            boolean isFreshPress = pressedKeys.add(event.getCode());
+            if (!isFreshPress) {
+                return;
+            }
 
             if (event.getCode() == KeyCode.ESCAPE) {
                 SoundManager.getInstance().playEffect("click");
@@ -161,22 +168,14 @@ public class GamePanel extends StackPane {
                 return;
             }
 
-            if (event.getCode() == KeyCode.SPACE) {
-                performAction(p1, p2);
-            } else if (event.getCode() == KeyCode.ENTER) {
-                performAction(p2, p1);
-            } else if (event.getCode() == KeyCode.W) {
-                p1.jump();
+            if (event.getCode() == KeyCode.W) {
+                p1JumpBufferedUntilMillis = now + GameSettings.JUMP_INPUT_BUFFER_MS;
             } else if (event.getCode() == KeyCode.UP) {
-                p2.jump();
+                p2JumpBufferedUntilMillis = now + GameSettings.JUMP_INPUT_BUFFER_MS;
             } else if (event.getCode() == KeyCode.S) {
-                if (canDropToLowerPlatform(p1)) {
-                    p1.requestDropThrough(now);
-                }
+                p1DropBufferedUntilMillis = now + GameSettings.DROP_INPUT_BUFFER_MS;
             } else if (event.getCode() == KeyCode.DOWN) {
-                if (canDropToLowerPlatform(p2)) {
-                    p2.requestDropThrough(now);
-                }
+                p2DropBufferedUntilMillis = now + GameSettings.DROP_INPUT_BUFFER_MS;
             }
         });
 
@@ -203,7 +202,9 @@ public class GamePanel extends StackPane {
             p1.setHorizontalInput(0.0);
             p2.setHorizontalInput(0.0);
         } else {
+            processBufferedVerticalInputs(now);
             updateMovement();
+            updateActions(now);
         }
 
         List<Updatable> updatables = new ArrayList<>();
@@ -244,6 +245,45 @@ public class GamePanel extends StackPane {
 
         double p2Horizontal = axis(pressedKeys.contains(KeyCode.LEFT), pressedKeys.contains(KeyCode.RIGHT));
         p2.setHorizontalInput(p2Horizontal);
+    }
+
+    private void updateActions(long nowMillis) {
+        if (p1.canAction(nowMillis) && pressedKeys.contains(KeyCode.SPACE)) {
+            performAction(p1, p2);
+        }
+        if (p2.canAction(nowMillis) && pressedKeys.contains(KeyCode.ENTER)) {
+            performAction(p2, p1);
+        }
+    }
+
+    private void processBufferedVerticalInputs(long nowMillis) {
+        if (p1JumpBufferedUntilMillis > 0L && nowMillis <= p1JumpBufferedUntilMillis && p1.jump(nowMillis)) {
+            p1JumpBufferedUntilMillis = 0L;
+        }
+        if (p2JumpBufferedUntilMillis > 0L && nowMillis <= p2JumpBufferedUntilMillis && p2.jump(nowMillis)) {
+            p2JumpBufferedUntilMillis = 0L;
+        }
+        if (p1DropBufferedUntilMillis > 0L && nowMillis <= p1DropBufferedUntilMillis && canDropToLowerPlatform(p1)) {
+            p1.requestDropThrough(nowMillis);
+            p1DropBufferedUntilMillis = 0L;
+        }
+        if (p2DropBufferedUntilMillis > 0L && nowMillis <= p2DropBufferedUntilMillis && canDropToLowerPlatform(p2)) {
+            p2.requestDropThrough(nowMillis);
+            p2DropBufferedUntilMillis = 0L;
+        }
+
+        if (nowMillis > p1JumpBufferedUntilMillis) {
+            p1JumpBufferedUntilMillis = 0L;
+        }
+        if (nowMillis > p2JumpBufferedUntilMillis) {
+            p2JumpBufferedUntilMillis = 0L;
+        }
+        if (nowMillis > p1DropBufferedUntilMillis) {
+            p1DropBufferedUntilMillis = 0L;
+        }
+        if (nowMillis > p2DropBufferedUntilMillis) {
+            p2DropBufferedUntilMillis = 0L;
+        }
     }
 
     private double axis(boolean negative, boolean positive) {
@@ -397,33 +437,7 @@ public class GamePanel extends StackPane {
     }
 
     private boolean canDropToLowerPlatform(Player player) {
-        if (!player.isOnGround()) {
-            return false;
-        }
-
-        var playerBounds = player.getBounds();
-        double playerBottom = playerBounds.getMaxY();
-        double nearestPlatformBelowTop = Double.POSITIVE_INFINITY;
-
-        for (PlatformSurface surface : worldSurfaces) {
-            var bounds = surface.getBounds();
-            boolean horizontalOverlap = bounds.getMaxX() > playerBounds.getMinX() + 2
-                    && bounds.getMinX() < playerBounds.getMaxX() - 2;
-            if (!horizontalOverlap) {
-                continue;
-            }
-            if (bounds.getMinY() <= playerBottom + 6) {
-                continue;
-            }
-
-            nearestPlatformBelowTop = Math.min(nearestPlatformBelowTop, bounds.getMinY());
-        }
-
-        if (nearestPlatformBelowTop == Double.POSITIVE_INFINITY) {
-            return false;
-        }
-
-        return nearestPlatformBelowTop + GameSettings.PLAYER_HEIGHT <= GameSettings.WORLD_FLOOR_Y;
+        return player.isOnGround();
     }
 
     private void handleBlastZoneDeaths(long now) {
