@@ -1,6 +1,6 @@
 package game.entities;
 
-import game.core.SpriteFrame;
+import game.logic.SpriteFrame;
 import javafx.scene.paint.Color;
 
 import java.util.List;

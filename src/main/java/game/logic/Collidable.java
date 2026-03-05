@@ -1,4 +1,4 @@
-package game.core;
+package game.logic;
 
 import javafx.geometry.Rectangle2D;
 

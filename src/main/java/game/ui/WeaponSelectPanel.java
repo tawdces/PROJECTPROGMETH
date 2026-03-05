@@ -1,7 +1,7 @@
 package game.ui;
 
 import game.config.GameSettings;
-import game.core.SoundManager;
+import game.logic.SoundManager;
 import game.entities.weapons.Gun;
 import game.entities.weapons.GunRegistry;
 import javafx.geometry.Pos;

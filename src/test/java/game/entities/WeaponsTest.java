@@ -1,6 +1,6 @@
 package game.entities;
 
-import game.core.SpriteFrame;
+import game.logic.SpriteFrame;
 import game.entities.weapons.*;
 import game.testutil.FxTestUtils;
 import javafx.scene.paint.Color;

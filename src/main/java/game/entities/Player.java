@@ -1,10 +1,10 @@
 package game.entities;
 
 import game.config.GameSettings;
-import game.core.GameEntity;
-import game.core.PlatformSurface;
-import game.core.SoundManager;
-import game.core.SpriteFrame;
+import game.logic.GameEntity;
+import game.logic.PlatformSurface;
+import game.logic.SoundManager;
+import game.logic.SpriteFrame;
 import game.entities.weapons.Gun;
 import game.entities.weapons.GunRegistry;
 import javafx.geometry.Rectangle2D;

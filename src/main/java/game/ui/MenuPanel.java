@@ -8,7 +8,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import game.core.SoundManager;
+import game.logic.SoundManager;
 
 public class MenuPanel extends VBox {
     public MenuPanel(Runnable onStart, Runnable onExit) {

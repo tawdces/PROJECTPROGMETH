@@ -1,6 +1,6 @@
 package game.ui;
 
-import game.core.SoundManager;
+import game.logic.SoundManager;
 import game.entities.weapons.Gun;
 import game.entities.weapons.GunRegistry;
 import game.testutil.FxTestUtils;

@@ -1,7 +1,7 @@
 package game.ui;
 
 import game.config.GameSettings;
-import game.core.SoundManager;
+import game.logic.SoundManager;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -26,7 +26,7 @@ public class MapSelectPanel extends VBox {
     public static int mapWidth = 540;
     public static int mapHeight = 300;
     public static final String SUNSET_MAP_RESOURCE = "/sunset/background.png";
-    private static final String SUNSET_PREVIEW_RESOURCE = "/sunset/platform.png";
+    private static final String SUNSET_PREVIEW_RESOURCE = "/sunset/sunsetcityPreview.png";
     public static final List<String> MAP_RESOURCES = List.of(
             "/Map1.png",
             "/Map2.png",

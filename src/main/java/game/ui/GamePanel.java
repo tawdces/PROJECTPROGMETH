@@ -1,11 +1,11 @@
 package game.ui;
 
 import game.config.GameSettings;
-import game.core.PlatformSurface;
-import game.core.Renderable;
-import game.core.SharedMultiplayerCamera;
-import game.core.SoundManager;
-import game.core.Updatable;
+import game.logic.PlatformSurface;
+import game.logic.Renderable;
+import game.logic.SharedMultiplayerCamera;
+import game.logic.SoundManager;
+import game.logic.Updatable;
 import game.entities.Bullet;
 import game.entities.Player;
 import game.entities.PlayerOne;
