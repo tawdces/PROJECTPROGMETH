@@ -12,7 +12,7 @@ import java.util.Objects;
 
 public class Bullet extends GameEntity {
     private static final Image EMPTY_BULLET_SPRITE = new WritableImage(1, 1);
-    private static final Image BULLET_MOVE_IMAGE = loadTransparentBulletSprite("/Bullet_move.png");
+    private static final Image BULLET_MOVE_IMAGE = new Image(Bullet.class.getResourceAsStream("/images/effects/Bullet_move.png"));
 
     private final double velocityX;
     private final double velocityY;
@@ -103,43 +103,7 @@ public class Bullet extends GameEntity {
         return impactForceY;
     }
 
-    private static Image loadTransparentBulletSprite(String resourcePath) {
-        Image raw = new Image(Objects.requireNonNull(Bullet.class.getResourceAsStream(resourcePath)));
-        if (raw.isError()) {
-            return EMPTY_BULLET_SPRITE;
-        }
-        int w = (int) Math.round(raw.getWidth());
-        int h = (int) Math.round(raw.getHeight());
-        if (w <= 0 || h <= 0) {
-            return EMPTY_BULLET_SPRITE;
-        }
-
-        PixelReader reader = raw.getPixelReader();
-        if (reader == null) {
-            return EMPTY_BULLET_SPRITE;
-        }
-
-        WritableImage out = new WritableImage(w, h);
-        PixelWriter writer = out.getPixelWriter();
-        Color key = reader.getColor(0, 0);
-
-        for (int py = 0; py < h; py++) {
-            for (int px = 0; px < w; px++) {
-                Color c = reader.getColor(px, py);
-                boolean transparentByKey = colorDistance(c, key) < 0.18;
-                boolean transparentByWhite = c.getOpacity() > 0.0
-                        && c.getBrightness() > 0.94
-                        && c.getSaturation() < 0.16;
-                if (transparentByKey || transparentByWhite) {
-                    writer.setColor(px, py, Color.color(c.getRed(), c.getGreen(), c.getBlue(), 0.0));
-                } else {
-                    writer.setColor(px, py, c);
-                }
-            }
-        }
-        return out;
-    }
-
+   
     private static double colorDistance(Color a, Color b) {
         double dr = a.getRed() - b.getRed();
         double dg = a.getGreen() - b.getGreen();
