@@ -208,7 +208,7 @@ public class GamePanel extends StackPane {
             }
 
             long now = System.currentTimeMillis();
-            if (paused || gameOver || isCombatLocked(now)) {
+            if (paused || gameOver) {
                 return;
             }
 
@@ -249,12 +249,10 @@ public class GamePanel extends StackPane {
             now = System.currentTimeMillis();
         }
 
-        if (isCombatLocked(now)) {
-            p1.setHorizontalInput(0.0);
-            p2.setHorizontalInput(0.0);
-        } else {
-            processBufferedVerticalInputs(now);
-            updateMovement();
+        boolean combatLocked = isCombatLocked(now);
+        processBufferedVerticalInputs(now);
+        updateMovement();
+        if (!combatLocked) {
             updateActions(now);
         }
 
@@ -276,7 +274,7 @@ public class GamePanel extends StackPane {
         traps.removeIf(trap -> !trap.isActive());
         powerUps.removeIf(p -> !p.isActive());
 
-        if (!isCombatLocked(now)) {
+        if (!combatLocked) {
             checkLandmineTriggers(now);
             handleBulletHits(now);
             updateWeaponDrops(now);
