@@ -15,9 +15,17 @@ import java.util.Random;
 
 public final class SoundManager {
     private static final SoundManager INSTANCE = new SoundManager();
+    private static final double MENU_BGM_BASE_VOLUME = 1.0;
+    private static final double GAME_BGM_BASE_VOLUME = 0.35;
+    private static final double MIN_VOLUME = 0.0;
+    private static final double MAX_VOLUME = 1.0;
+
     private final Map<String, AudioClip> effects = new HashMap<>();
     private MediaPlayer bgmPlayer;
     private final Random random = new Random();
+    private double musicVolume = 1.0;
+    private double effectVolume = 1.0;
+    private double currentBgmBaseVolume = MENU_BGM_BASE_VOLUME;
 
     private final List<String> bgmFiles = List.of("/bgm1.mp3", "/bgm2.mp3", "/bgm3.mp3", "/bgm4.mp3");
 
@@ -57,12 +65,11 @@ public final class SoundManager {
     public void playEffect(String name) {
         AudioClip clip = effects.get(name);
         if (clip != null) {
+            double rate = 1.0;
             if ("shoot".equals(name) || "step".equals(name) || "hit".equals(name)) {
-                clip.setRate(0.9 + random.nextDouble() * 0.2); 
-            } else {
-                clip.setRate(1.0);
+                rate = 0.9 + random.nextDouble() * 0.2;
             }
-            clip.play();
+            clip.play(effectVolume, 0.0, rate, 0.0, 0);
         }
     }
 
@@ -87,7 +94,8 @@ public final class SoundManager {
                 Media media = new Media(mediaUrl);
                 bgmPlayer = new MediaPlayer(media);
                 bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE); 
-                bgmPlayer.setVolume(0.35); 
+                currentBgmBaseVolume = GAME_BGM_BASE_VOLUME;
+                applyBgmVolume();
                 bgmPlayer.play();
             } else {
                 System.out.println("Warning: BGM not found: " + resourcePath);
@@ -116,7 +124,8 @@ public final class SoundManager {
                 Media media = new Media(mediaUrl);
                 bgmPlayer = new MediaPlayer(media);
                 bgmPlayer.setCycleCount(MediaPlayer.INDEFINITE);
-                bgmPlayer.setVolume(1); 
+                currentBgmBaseVolume = MENU_BGM_BASE_VOLUME;
+                applyBgmVolume();
                 bgmPlayer.play();
             } else {
                 System.out.println("Warning: Menu BGM not found: " + resourcePath);
@@ -132,5 +141,44 @@ public final class SoundManager {
             bgmPlayer.dispose();
             bgmPlayer = null;
         }
+    }
+
+    public double getMusicVolume() {
+        return musicVolume;
+    }
+
+    public void setMusicVolume(double volume) {
+        musicVolume = clampVolume(volume);
+        applyBgmVolume();
+    }
+
+    public double getEffectVolume() {
+        return effectVolume;
+    }
+
+    public void setEffectVolume(double volume) {
+        effectVolume = clampVolume(volume);
+    }
+
+    public double getMasterVolume() {
+        return (musicVolume + effectVolume) * 0.5;
+    }
+
+    public void setMasterVolume(double volume) {
+        setMusicVolume(volume);
+        setEffectVolume(volume);
+    }
+
+    private void applyBgmVolume() {
+        if (bgmPlayer != null) {
+            bgmPlayer.setVolume(clampVolume(currentBgmBaseVolume * musicVolume));
+        }
+    }
+
+    private static double clampVolume(double volume) {
+        if (Double.isNaN(volume)) {
+            return MAX_VOLUME;
+        }
+        return Math.max(MIN_VOLUME, Math.min(MAX_VOLUME, volume));
     }
 }

@@ -21,7 +21,10 @@ class MenuPanelTest {
 
     @AfterEach
     void stopAudio() {
-        SoundManager.getInstance().stopBgm();
+        SoundManager soundManager = SoundManager.getInstance();
+        soundManager.stopBgm();
+        soundManager.setMusicVolume(1.0);
+        soundManager.setEffectVolume(1.0);
     }
 
     @Test

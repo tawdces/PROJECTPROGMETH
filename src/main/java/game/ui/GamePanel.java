@@ -27,11 +27,13 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -49,6 +51,8 @@ import java.util.Random;
 import java.util.Set;
 
 public class GamePanel extends StackPane {
+    private static final double VOLUME_PERCENT_MIN = 0.0;
+    private static final double VOLUME_PERCENT_MAX = 100.0;
     private static final double SKY_RESPAWN_Y_MIN = 260.0;
     private static final double SKY_RESPAWN_Y_MAX = 430.0;
     private static final double SIDE_RESPAWN_MARGIN = 48.0;
@@ -945,11 +949,13 @@ public class GamePanel extends StackPane {
     }
 
     private void setupPauseUi() {
+        SoundManager soundManager = SoundManager.getInstance();
+
         pauseButton.setFocusTraversable(false);
         pauseButton.setPrefWidth(100);
         styleMenuButton(pauseButton, "#4c5f80", "#2f3b53");
         pauseButton.setOnAction(event -> {
-            SoundManager.getInstance().playEffect("click");
+            soundManager.playEffect("click");
             togglePause();
         });
         StackPane.setAlignment(pauseButton, Pos.TOP_RIGHT);
@@ -959,11 +965,52 @@ public class GamePanel extends StackPane {
         title.setTextFill(Color.WHITE);
         title.setFont(Font.font("Impact", FontWeight.NORMAL, 38));
 
+        Label musicVolumeLabel = new Label();
+        musicVolumeLabel.setId("pauseMusicVolumeLabel");
+        stylePauseAudioLabel(musicVolumeLabel);
+
+        Slider musicVolumeSlider = createPauseVolumeSlider(soundManager.getMusicVolume());
+        musicVolumeSlider.setId("pauseMusicVolumeSlider");
+        musicVolumeSlider.valueProperty().addListener((obs, oldValue, newValue) -> {
+            double volume = newValue.doubleValue() / 100.0;
+            soundManager.setMusicVolume(volume);
+            musicVolumeLabel.setText(volumeText("MUSIC", newValue.doubleValue()));
+        });
+        musicVolumeLabel.setText(volumeText("MUSIC", musicVolumeSlider.getValue()));
+
+        Label effectVolumeLabel = new Label();
+        effectVolumeLabel.setId("pauseEffectVolumeLabel");
+        stylePauseAudioLabel(effectVolumeLabel);
+
+        Slider effectVolumeSlider = createPauseVolumeSlider(soundManager.getEffectVolume());
+        effectVolumeSlider.setId("pauseEffectVolumeSlider");
+        effectVolumeSlider.valueProperty().addListener((obs, oldValue, newValue) -> {
+            double volume = newValue.doubleValue() / 100.0;
+            soundManager.setEffectVolume(volume);
+            effectVolumeLabel.setText(volumeText("EFFECT", newValue.doubleValue()));
+        });
+        effectVolumeSlider.setOnMouseReleased(event -> soundManager.playEffect("click"));
+        effectVolumeLabel.setText(volumeText("EFFECT", effectVolumeSlider.getValue()));
+
+        HBox musicRow = new HBox(12, musicVolumeLabel, musicVolumeSlider);
+        musicRow.setAlignment(Pos.CENTER);
+
+        HBox effectRow = new HBox(12, effectVolumeLabel, effectVolumeSlider);
+        effectRow.setAlignment(Pos.CENTER);
+
+        VBox audioControls = new VBox(8, musicRow, effectRow);
+        audioControls.setAlignment(Pos.CENTER);
+        audioControls.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.08); "
+                        + "-fx-background-radius: 10; "
+                        + "-fx-padding: 10 12 10 12;"
+        );
+
         Button cont = new Button("Continue");
         cont.setPrefWidth(220);
         styleMenuButton(cont, "#3c8cff", "#1f5ec9");
         cont.setOnAction(event -> {
-            SoundManager.getInstance().playEffect("click");
+            soundManager.playEffect("click");
             setPaused(false);
         });
 
@@ -971,7 +1018,7 @@ public class GamePanel extends StackPane {
         restart.setPrefWidth(220);
         styleMenuButton(restart, "#70839a", "#4d5f74");
         restart.setOnAction(event -> {
-            SoundManager.getInstance().playEffect("click");
+            soundManager.playEffect("click");
             shutdownGameSystems();
             onRematch.run();
         });
@@ -980,16 +1027,16 @@ public class GamePanel extends StackPane {
         menu.setPrefWidth(220);
         styleMenuButton(menu, "#3a4354", "#252d39");
         menu.setOnAction(event -> {
-            SoundManager.getInstance().playEffect("click");
+            soundManager.playEffect("click");
             shutdownGameSystems();
             onBackToMenu.run();
         });
 
-        pauseModal = new VBox(14, title, cont, restart, menu);
+        pauseModal = new VBox(14, title, audioControls, cont, restart, menu);
         pauseModal.setAlignment(Pos.CENTER);
         pauseModal.setVisible(false);
-        pauseModal.setMaxWidth(360);
-        pauseModal.setMaxHeight(280);
+        pauseModal.setMaxWidth(420);
+        pauseModal.setMaxHeight(360);
         pauseModal.setStyle("-fx-background-color: rgba(0,0,0,0.84); -fx-padding: 24; -fx-background-radius: 14;");
 
         getChildren().addAll(pauseModal, pauseButton);
@@ -1004,6 +1051,24 @@ public class GamePanel extends StackPane {
                         + "-fx-background-radius: 10; "
                         + "-fx-padding: 8 16 8 16;"
         );
+    }
+
+    private static Slider createPauseVolumeSlider(double volume) {
+        Slider slider = new Slider(VOLUME_PERCENT_MIN, VOLUME_PERCENT_MAX, volume * 100.0);
+        slider.setFocusTraversable(false);
+        slider.setPrefWidth(220);
+        slider.setBlockIncrement(1.0);
+        return slider;
+    }
+
+    private static void stylePauseAudioLabel(Label label) {
+        label.setTextFill(Color.web("#ffe8a0"));
+        label.setFont(Font.font("Consolas", FontWeight.BOLD, 14));
+    }
+
+    private static String volumeText(String channel, double valuePercent) {
+        int percent = (int) Math.round(Math.max(VOLUME_PERCENT_MIN, Math.min(VOLUME_PERCENT_MAX, valuePercent)));
+        return channel + ": " + percent + "%";
     }
 
     private void togglePause() {
