@@ -909,6 +909,9 @@ public class GamePanel extends StackPane {
     }
 
     private boolean tryPickup(WeaponDrop drop, Player player, long nowMillis) {
+        if (!drop.isLanded()) {
+            return false;
+        }
         if (!drop.bounds().intersects(player.getBounds())) {
             return false;
         }

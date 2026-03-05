@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Random;
 
 final class MatchDropCoordinator {
+    private static final double SKY_DROP_MIN_HEIGHT = 70.0;
+    private static final double SKY_DROP_MAX_HEIGHT = 250.0;
     private final List<PlatformSurface> worldSurfaces;
     private final Random random;
     private final List<WeaponDrop> weaponDrops = new ArrayList<>();
@@ -28,6 +30,7 @@ final class MatchDropCoordinator {
     private long nextGunDropAtMillis;
     private long nextTrapDropAtMillis;
     private long nextPowerUpDropAtMillis;
+    private long lastDropUpdateAtMillis;
 
     MatchDropCoordinator(List<PlatformSurface> worldSurfaces, Random random) {
         this.worldSurfaces = worldSurfaces;
@@ -54,6 +57,7 @@ final class MatchDropCoordinator {
         weaponDrops.clear();
         traps.clear();
         powerUps.clear();
+        lastDropUpdateAtMillis = 0L;
     }
 
     void prepareRound(long freezeUntilMillis) {
@@ -62,9 +66,12 @@ final class MatchDropCoordinator {
         nextGunDropAtMillis = freezeUntilMillis + GameSettings.FIRST_DROP_DELAY_MS;
         nextTrapDropAtMillis = freezeUntilMillis + GameSettings.TRAP_DROP_INTERVAL_MS;
         nextPowerUpDropAtMillis = freezeUntilMillis + GameSettings.POWERUP_DROP_INTERVAL_MS;
+        lastDropUpdateAtMillis = freezeUntilMillis;
     }
 
     void updateDrops(long nowMillis) {
+        double deltaSeconds = computeDropDeltaSeconds(nowMillis);
+        updateActiveFallingDrops(deltaSeconds);
         updateWeaponDrops(nowMillis);
         updateTrapDrops(nowMillis);
         updatePowerUpDrops(nowMillis);
@@ -103,7 +110,7 @@ final class MatchDropCoordinator {
                 double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
                 double spawnY = bounds.getMinY();
                 if (random.nextBoolean()) {
-                    traps.add(new ExplosiveBarrel(spawnX, spawnY));
+                    traps.add(new ExplosiveBarrel(spawnX, spawnY, randomSkyTopY()));
                 } else {
                     traps.add(new Landmine(spawnX, spawnY));
                 }
@@ -168,7 +175,7 @@ final class MatchDropCoordinator {
                 double spawnX = spawnMinX + random.nextDouble() * (spawnMaxX - spawnMinX);
                 double spawnY = bounds.getMinY();
                 if (random.nextBoolean()) {
-                    traps.add(new ExplosiveBarrel(spawnX, spawnY));
+                    traps.add(new ExplosiveBarrel(spawnX, spawnY, randomSkyTopY()));
                 } else {
                     traps.add(new Landmine(spawnX, spawnY));
                 }
@@ -211,10 +218,35 @@ final class MatchDropCoordinator {
         double spawnMinX = bounds.getMinX() + 6.0;
         double spawnMaxX = bounds.getMaxX() - GameSettings.BOX_SIZE - 6.0;
         double spawnX = spawnMinX + random.nextDouble() * Math.max(1.0, spawnMaxX - spawnMinX);
-        double spawnY = bounds.getMinY() - GameSettings.BOX_SIZE - 2.0;
+        double landingY = bounds.getMinY() - GameSettings.BOX_SIZE - 2.0;
+        double spawnY = randomSkyTopY();
 
         List<Gun> randomPool = GunRegistry.SELECTABLE_GUNS;
         Gun gun = randomPool.get(random.nextInt(randomPool.size()));
-        return new WeaponDrop(spawnX, spawnY, gun);
+        return new WeaponDrop(spawnX, spawnY, landingY, gun);
+    }
+
+    private void updateActiveFallingDrops(double deltaSeconds) {
+        if (deltaSeconds <= 0.0) {
+            return;
+        }
+        for (WeaponDrop drop : weaponDrops) {
+            drop.update(deltaSeconds);
+        }
+    }
+
+    private double randomSkyTopY() {
+        double dropHeight = SKY_DROP_MIN_HEIGHT + random.nextDouble() * (SKY_DROP_MAX_HEIGHT - SKY_DROP_MIN_HEIGHT);
+        return -dropHeight;
+    }
+
+    private double computeDropDeltaSeconds(long nowMillis) {
+        if (lastDropUpdateAtMillis <= 0L) {
+            lastDropUpdateAtMillis = nowMillis;
+            return 0.0;
+        }
+        long elapsedMillis = Math.max(0L, nowMillis - lastDropUpdateAtMillis);
+        lastDropUpdateAtMillis = nowMillis;
+        return Math.min(0.05, elapsedMillis / 1000.0);
     }
 }

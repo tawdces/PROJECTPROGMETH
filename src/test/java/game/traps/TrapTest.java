@@ -77,6 +77,19 @@ class TrapTest {
     }
 
     @Test
+    void explosiveBarrel_fallingConstructor_landsOnTargetPlatformTop() {
+        double landingTopY = 240.0;
+        double startTopY = -120.0;
+        ExplosiveBarrel b = new ExplosiveBarrel(90, landingTopY, startTopY);
+
+        assertEquals(startTopY - 42.0, b.getBounds().getMinY(), 1e-9);
+        for (int i = 0; i < 360; i++) {
+            b.update(1.0 / 60.0);
+        }
+        assertEquals(landingTopY - 42.0, b.getBounds().getMinY(), 1e-6);
+    }
+
+    @Test
     void deactivate_marksTrapInactive() {
         Trap t = new ExplosiveBarrel(0, 50);
         assertTrue(t.isActive());

@@ -14,18 +14,47 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class ExplosiveBarrel extends Trap {
+    private static final double DROP_GRAVITY = 1_750.0;
+    private static final double DROP_MAX_SPEED = 820.0;
     private static final Image EMPTY_IMAGE = new WritableImage(1, 1);
     private static final Image BARREL_IMAGE = loadTransparentImage("/images/traps/Barrel.png");
+    private final double landingY;
+    private double velocityY;
+    private boolean falling;
 
     public ExplosiveBarrel(double x, double y) {
-
         super(x, y - 42.0, 32.0, 42.0);
+        this.landingY = y - 42.0;
+        this.falling = false;
+    }
+
+    public ExplosiveBarrel(double x, double landingTopY, double startTopY) {
+        super(x, startTopY - 42.0, 32.0, 42.0);
+        this.landingY = landingTopY - 42.0;
+        this.falling = startTopY < landingTopY;
+        if (!falling) {
+            this.y = this.landingY;
+        }
     }
 
     @Override
     public double getExplosionForceMultiplier() {
 
         return 1.0;
+    }
+
+    @Override
+    public void update(double deltaSeconds) {
+        if (!falling) {
+            return;
+        }
+        velocityY = Math.min(DROP_MAX_SPEED, velocityY + DROP_GRAVITY * deltaSeconds);
+        y += velocityY * deltaSeconds;
+        if (y >= landingY) {
+            y = landingY;
+            velocityY = 0.0;
+            falling = false;
+        }
     }
 
     @Override
