@@ -3,6 +3,7 @@
 # Gun Mayhem Arena - Project Map
 
 This README is a quick guide for finding what lives where in this project.
+> For the full project report and user guide, please refer to [REPORT.md](REPORT.md)
 
 ## Quick Start
 
