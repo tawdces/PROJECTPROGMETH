@@ -16,10 +16,10 @@ public class MenuPanel extends VBox {
         setPrefSize(GameSettings.WIDTH, GameSettings.HEIGHT);
         setAlignment(Pos.CENTER);
         
-        // เพิ่ม Spacing โดยรวมระหว่างบล็อกข้อความกับปุ่ม
+        
         setSpacing(30); 
         
-        // --- 1. ตั้งค่าภาพพื้นหลังหลัก (เหมือนเดิม) ---
+        
         String bgImagePath;
         try {
             bgImagePath = getClass().getResource("/menu_bg.png").toExternalForm();
@@ -37,23 +37,23 @@ public class MenuPanel extends VBox {
             );
         }
 
-        // --- 2. สร้างคอนเทนเนอร์สำหรับข้อความ (เพื่อทำกรอบโปร่งแสง) ---
+        
         VBox textContainer = new VBox();
         textContainer.setAlignment(Pos.CENTER);
-        textContainer.setSpacing(10); // Spacing ระหว่างบรรทัดข้อความ
-        textContainer.setMaxWidth(GameSettings.WIDTH * 0.8); // กำหนดความกว้างกรอบไม่ให้เต็มจอ
+        textContainer.setSpacing(10); 
+        textContainer.setMaxWidth(GameSettings.WIDTH * 0.8); 
 
-        // ตั้งค่าสไตล์กรอบโปร่งแสง (rgba โดย 0.6 คือความเข้มข้นของสีดำ 60%)
+        
         textContainer.setStyle(
-                "-fx-background-color: rgba(0, 0, 0, 0.6); " + // สีดำโปร่งแสง
-                "-fx-background-radius: 20; " +                  // ขอบมน
-                "-fx-padding: 40; " +                            // ระยะห่างข้างในกรอบ
-                "-fx-border-color: rgba(255, 255, 255, 0.1); " + // ขอบนอกสีขาวจางๆ
+                "-fx-background-color: rgba(0, 0, 0, 0.6); " + 
+                "-fx-background-radius: 20; " +                  
+                "-fx-padding: 40; " +                            
+                "-fx-border-color: rgba(255, 255, 255, 0.1); " + 
                 "-fx-border-radius: 20; " +
                 "-fx-border-width: 1;"
         );
 
-        // --- 3. สร้างข้อความต่างๆ (เหมือนเดิม แต่เอา Tip มาใส่รวมที่นี่) ---
+        
         Label title = new Label("GUN MAYHEM ARENA");
         title.setTextFill(Color.web("#fff4af"));
         title.setFont(Font.font("Impact", FontWeight.NORMAL, 56));
@@ -70,12 +70,12 @@ public class MenuPanel extends VBox {
         tip.setTextFill(Color.web("#c7daf8"));
         tip.setFont(Font.font("Consolas", FontWeight.NORMAL, 13));
 
-        // ใส่ข้อความทั้งหมดลงใน textContainer
+        
         textContainer.getChildren().addAll(title, subtitle, controls, tip);
 
         SoundManager.getInstance().playMenuBgm(); 
 
-        // --- 4. สร้างปุ่ม (เหมือนเดิม อยู่ข้างนอกกรอบข้อความ) ---
+        
         Button start = new Button("START");
         start.setPrefWidth(220);
         styleButton(start, "#3c8cff", "#1f5ec9");
@@ -92,8 +92,8 @@ public class MenuPanel extends VBox {
             onExit.run();
         });
 
-        // --- 5. เพิ่มส่วนประกอบหลักลงใน MenuPanel (VBox หลัก) ---
-        // ใส่ textContainer และปุ่มต่างๆ
+        
+        
         getChildren().addAll(textContainer, start, exit);
     }
 
