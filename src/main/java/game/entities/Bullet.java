@@ -20,6 +20,8 @@ public class Bullet extends GameEntity {
     private final double impactForceX;
     private final double impactForceY;
     private final Player owner;
+    private final double maxTravelDistance;
+    private double traveledDistance;
 
     public Bullet(
             double startX,
@@ -30,18 +32,40 @@ public class Bullet extends GameEntity {
             double impactForceY,
             Player owner
     ) {
+        this(startX, startY, velocityX, velocityY, impactForceX, impactForceY, owner, Double.POSITIVE_INFINITY);
+    }
+
+    public Bullet(
+            double startX,
+            double startY,
+            double velocityX,
+            double velocityY,
+            double impactForceX,
+            double impactForceY,
+            Player owner,
+            double maxTravelDistance
+    ) {
         super(startX, startY, GameSettings.BULLET_SIZE, GameSettings.BULLET_SIZE);
         this.velocityX = velocityX;
         this.velocityY = velocityY;
         this.impactForceX = impactForceX;
         this.impactForceY = impactForceY;
         this.owner = owner;
+        this.maxTravelDistance = maxTravelDistance;
     }
 
     @Override
     public void update(double deltaSeconds) {
-        x += velocityX * deltaSeconds;
-        y += velocityY * deltaSeconds;
+        double stepX = velocityX * deltaSeconds;
+        double stepY = velocityY * deltaSeconds;
+        x += stepX;
+        y += stepY;
+        traveledDistance += Math.hypot(stepX, stepY);
+
+        if (Double.isFinite(maxTravelDistance) && traveledDistance >= maxTravelDistance) {
+            deactivate();
+            return;
+        }
 
         double margin = GameSettings.BLAST_ZONE_MARGIN + 100.0;
         if (x < -margin || x > GameSettings.WIDTH + margin || y < -margin || y > GameSettings.HEIGHT + margin) {

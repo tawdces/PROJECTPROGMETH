@@ -61,6 +61,18 @@ class BulletTest {
     }
 
     @Test
+    void update_deactivatesWhenTravelDistanceExceedsMaxRange() {
+        Player owner = new TestPlayer(0, 0);
+        Bullet b = new Bullet(10, 10, 100, 0, 0, 0, owner, 50.0);
+
+        b.update(0.49);
+        assertTrue(b.isActive());
+
+        b.update(0.02);
+        assertFalse(b.isActive());
+    }
+
+    @Test
     void render_doesNotThrow() {
         Player owner = new TestPlayer(0, 0);
         Bullet b = new Bullet(10, 10, 100, 0, 0, 0, owner);

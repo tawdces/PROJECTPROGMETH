@@ -8,7 +8,7 @@ public final class GameSettings {
 
     public static final double PLAYER_WIDTH = 44;
     public static final double PLAYER_HEIGHT = 68;
-    public static final double BULLET_SIZE = 10;
+    public static final double BULLET_SIZE = 14;
     public static final double BOX_SIZE = 34;
 
     public static final double MOVE_SPEED = 320.0;
@@ -35,6 +35,7 @@ public final class GameSettings {
     public static final double BULLET_FORCE = 640.0;
     public static final double BULLET_VERTICAL_FORCE = -55.0;
     public static final double BULLET_SPEED = 620.0;
+    public static final double SHOTGUN_PELLET_RANGE = 360.0;
     public static final double SHOOT_RECOIL_BASE = 42.0;
     public static final double SHOOT_RECOIL_PER_BULLET = 22.0;
     public static final double SHOOT_RECOIL_VERTICAL_FORCE = -16.0;
@@ -49,8 +50,8 @@ public final class GameSettings {
     public static final int ROUND_WINS_TO_MATCH = 3;
     public static final long ROUND_END_DELAY_MS = 1_500;
     public static final long ROUND_START_COUNTDOWN_MS = 1_600;
-    public static final long SCREEN_SHAKE_DURATION_MS = 120;
-    public static final double SCREEN_SHAKE_STRENGTH = 10.0;
+    public static final long SCREEN_SHAKE_DURATION_MS = 90;
+    public static final double SCREEN_SHAKE_STRENGTH = 5.5;
 
     public static final double BARREL_SIZE = 36.0;
     public static final double EXPLOSION_RADIUS = 200.0;

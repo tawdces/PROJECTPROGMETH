@@ -20,8 +20,9 @@ import java.util.Objects;
 
 public abstract class Player extends GameEntity {
 
-    private static final double GUN_WIDTH_RATIO = 1.25;
-    private static final double GUN_HEIGHT_RATIO = 0.38;
+    private static final double GUN_WIDTH_RATIO = 1.80;
+    private static final double GUN_HEIGHT_RATIO = 0.40;
+    private static final double GUN_RENDER_SCALE = 1.22;
     private static final Image EMPTY_SPRITE = new WritableImage(1, 1);
 
     private final String name;
@@ -375,8 +376,8 @@ public abstract class Player extends GameEntity {
     }
 
     private GunPose computeGunPose(Gun gun) {
-        double gunWidth = Math.min(gun.renderWidth(), width * GUN_WIDTH_RATIO);
-        double gunHeight = Math.max(12.0, gunWidth * GUN_HEIGHT_RATIO);
+        double gunWidth = Math.min(gun.renderWidth() * GUN_RENDER_SCALE, width * GUN_WIDTH_RATIO);
+        double gunHeight = Math.max(14.0, gunWidth * GUN_HEIGHT_RATIO);
         double handAnchorX = facingDirection > 0 ? x + width * 0.58 : x + width * 0.42;
         double handAnchorY = y + height * 0.56;
         double gunX = facingDirection > 0 ? handAnchorX - gunWidth * 0.20 : handAnchorX - gunWidth * 0.80;

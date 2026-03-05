@@ -1,5 +1,6 @@
 package game.entities.weapons;
 
+import game.config.GameSettings;
 import game.entities.Bullet;
 import game.entities.Player;
 
@@ -17,7 +18,14 @@ public final class ShotgunGun extends AbstractGun {
     public List<Bullet> fire(Player owner, double muzzleX, double muzzleY, int facingDirection) {
         List<Bullet> bullets = new ArrayList<>();
         for (double verticalSpeed : VERTICAL_SPREAD) {
-            bullets.add(createBullet(owner, muzzleX, muzzleY, facingDirection, verticalSpeed));
+            bullets.add(createBullet(
+                    owner,
+                    muzzleX,
+                    muzzleY,
+                    facingDirection,
+                    verticalSpeed,
+                    GameSettings.SHOTGUN_PELLET_RANGE
+            ));
         }
         return bullets;
     }

@@ -121,4 +121,19 @@ class WeaponsTest {
         assertEquals(5, bullets.size(), "Shotgun should fire multiple pellets");
         assertTrue(bullets.stream().allMatch(b -> b.getOwner() == owner));
     }
+
+    @Test
+    void shotgunBullets_expireByRange_whileOtherGunBulletsStayActive() {
+        Player owner = new TestPlayer(0, 0, 1);
+
+        Gun shotgun = new ShotgunGun();
+        List<Bullet> shotgunBullets = shotgun.fire(owner, 100, 200, 1);
+        shotgunBullets.forEach(b -> b.update(1.0));
+        assertTrue(shotgunBullets.stream().noneMatch(Bullet::isActive));
+
+        Gun pistol = new PistolGun();
+        Bullet pistolBullet = pistol.fire(owner, 100, 200, 1).get(0);
+        pistolBullet.update(1.0);
+        assertTrue(pistolBullet.isActive());
+    }
 }

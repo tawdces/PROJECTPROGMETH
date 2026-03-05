@@ -80,6 +80,17 @@ public abstract class AbstractGun implements Gun {
             int facingDirection,
             double verticalSpeed
     ) {
+        return createBullet(owner, muzzleX, muzzleY, facingDirection, verticalSpeed, Double.POSITIVE_INFINITY);
+    }
+
+    protected final Bullet createBullet(
+            Player owner,
+            double muzzleX,
+            double muzzleY,
+            int facingDirection,
+            double verticalSpeed,
+            double maxTravelDistance
+    ) {
         return new Bullet(
                 muzzleX,
                 muzzleY,
@@ -87,7 +98,8 @@ public abstract class AbstractGun implements Gun {
                 verticalSpeed,
                 facingDirection * forceX,
                 forceY,
-                owner
+                owner,
+                maxTravelDistance
         );
     }
 
